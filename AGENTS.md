@@ -6,6 +6,8 @@ This file captures project-specific guidance for coding agents working on Compos
 
 Composer is a native macOS control plane for Symphony-style coding-agent orchestration. It should remain local-first, provider-neutral, and prepared for future cloud sync.
 
+The repository is licensed under Apache-2.0.
+
 ## Core Rules
 
 - Keep interfaces generic and implementation-neutral.
