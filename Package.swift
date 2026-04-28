@@ -9,6 +9,7 @@ let package = Package(
     ],
     products: [
         .executable(name: "Composer", targets: ["ComposerApp"]),
+        .executable(name: "composerctl", targets: ["ComposerCLI"]),
         .library(name: "SymphonyCore", targets: ["SymphonyCore"]),
         .library(name: "SymphonyInterfaces", targets: ["SymphonyInterfaces"]),
         .library(name: "SymphonyLocalStore", targets: ["SymphonyLocalStore"]),
@@ -35,6 +36,13 @@ let package = Package(
                 "SymphonyInterfaces",
                 "SymphonyLocalStore",
                 "SymphonyRuntime"
+            ]
+        ),
+        .executableTarget(
+            name: "ComposerCLI",
+            dependencies: [
+                "SymphonyCore",
+                "SymphonyLocalStore"
             ]
         ),
         .testTarget(

@@ -8,6 +8,7 @@ import SymphonyRuntime
 final class AppModel: ObservableObject {
     @Published private(set) var projects: [Project] = []
     @Published private(set) var tasks: [WorkItem] = []
+    @Published private(set) var selectedTaskEvents: [RuntimeEvent] = []
     @Published var selectedProjectID: ProjectID?
     @Published var selectedTaskID: TaskID?
     @Published var errorMessage: String?
@@ -69,6 +70,7 @@ final class AppModel: ObservableObject {
         } else if let selectedTaskID, !tasks.contains(where: { $0.id == selectedTaskID }) {
             self.selectedTaskID = tasks.first?.id
         }
+        selectedTaskEvents = try await loadSelectedTaskEvents()
     }
 
     func selectProject(_ project: Project) async {
@@ -83,6 +85,9 @@ final class AppModel: ObservableObject {
 
     func selectTask(_ task: WorkItem) {
         selectedTaskID = task.id
+        Task {
+            await refreshSelectedTaskEvents()
+        }
     }
 
     func createTask() async {
@@ -103,8 +108,8 @@ final class AppModel: ObservableObject {
             )
             try await store.upsertTask(task)
             try await store.appendEvent(RuntimeEvent(taskID: task.id, kind: .taskCreated, message: "Task created"))
-            try await refreshTasks()
             selectedTaskID = task.id
+            try await refreshTasks()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -115,8 +120,21 @@ final class AppModel: ObservableObject {
             let moved = task.moving(to: state)
             try await store.upsertTask(moved)
             try await store.appendEvent(RuntimeEvent(taskID: task.id, kind: .taskMoved, message: "Moved to \(state.title)"))
-            try await refreshTasks()
             selectedTaskID = task.id
+            try await refreshTasks()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func updateTask(_ task: WorkItem) async {
+        do {
+            var updated = task
+            updated.updatedAt = Date()
+            try await store.upsertTask(updated)
+            try await store.appendEvent(RuntimeEvent(taskID: task.id, kind: .taskUpdated, message: "Task updated"))
+            selectedTaskID = task.id
+            try await refreshTasks()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -139,6 +157,21 @@ final class AppModel: ObservableObject {
                 .appendingPathComponent("Composer-local-store.json")
             return LocalJSONStore(fileURL: fallback)
         }
+    }
+
+    private func refreshSelectedTaskEvents() async {
+        do {
+            selectedTaskEvents = try await loadSelectedTaskEvents()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func loadSelectedTaskEvents() async throws -> [RuntimeEvent] {
+        guard let selectedTaskID else {
+            return []
+        }
+        return try await store.listEvents(taskID: selectedTaskID, limit: 50)
     }
 
     private func seedInitialProject() async throws {

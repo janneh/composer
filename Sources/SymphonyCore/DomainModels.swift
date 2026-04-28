@@ -245,6 +245,7 @@ public struct RunAttempt: Identifiable, Codable, Hashable, Sendable {
 
 public enum RuntimeEventKind: String, Codable, Hashable, Sendable {
     case taskCreated
+    case taskUpdated
     case taskMoved
     case runQueued
     case runStarted

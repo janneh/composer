@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import SymphonyCore
 
@@ -266,40 +267,307 @@ private struct LabelRow: View {
 }
 
 private struct InspectorView: View {
+    @EnvironmentObject private var model: AppModel
+
     var task: WorkItem?
+    @State private var draft: TaskDraft?
 
     var body: some View {
         Group {
             if let task {
-                Form {
-                    Section("Details") {
-                        LabeledContent("Identifier", value: task.identifier)
-                        LabeledContent("State", value: task.state.title)
-                        LabeledContent("Priority", value: task.priority.title)
-                        LabeledContent("Agent", value: task.preferredAgent?.kind.title ?? "Project Default")
-                    }
-
-                    Section("Description") {
-                        Text(task.description.isEmpty ? "No description" : task.description)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-
-                    Section("Labels") {
-                        if task.labels.isEmpty {
-                            Text("No labels")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            LabelRow(labels: task.labels)
+                TaskEditorView(
+                    task: task,
+                    taskCandidates: model.tasks,
+                    events: model.selectedTaskEvents,
+                    draft: draftBinding(for: task),
+                    onSave: { updated in
+                        Task {
+                            await model.updateTask(updated)
                         }
+                    },
+                    onReset: {
+                        draft = TaskDraft(task: task)
                     }
-                }
-                .formStyle(.grouped)
+                )
                 .navigationTitle(task.title)
+                .onAppear {
+                    resetDraftIfNeeded(for: task)
+                }
+                .onChange(of: task.id) { _, _ in
+                    resetDraftIfNeeded(for: task)
+                }
             } else {
                 ContentUnavailableView("No Task Selected", systemImage: "rectangle.stack")
             }
         }
         .frame(minWidth: 280)
+    }
+
+    private func draftBinding(for task: WorkItem) -> Binding<TaskDraft> {
+        Binding(
+            get: {
+                if let draft, draft.sourceID == task.id {
+                    return draft
+                }
+                return TaskDraft(task: task)
+            },
+            set: { newValue in
+                draft = newValue
+            }
+        )
+    }
+
+    private func resetDraftIfNeeded(for task: WorkItem) {
+        if draft?.sourceID != task.id {
+            draft = TaskDraft(task: task)
+        }
+    }
+}
+
+private struct TaskEditorView: View {
+    var task: WorkItem
+    var taskCandidates: [WorkItem]
+    var events: [RuntimeEvent]
+    @Binding var draft: TaskDraft
+    var onSave: (WorkItem) -> Void
+    var onReset: () -> Void
+
+    var body: some View {
+        Form {
+            Section("Identity") {
+                TextField("Identifier", text: $draft.identifier)
+                TextField("Title", text: $draft.title)
+            }
+
+            Section("Planning") {
+                Picker("State", selection: $draft.state) {
+                    ForEach(WorkState.allCases) { state in
+                        Text(state.title).tag(state)
+                    }
+                }
+
+                Picker("Priority", selection: $draft.priority) {
+                    ForEach(WorkPriority.allCases) { priority in
+                        Text(priority.title).tag(priority)
+                    }
+                }
+
+                Picker("Agent", selection: $draft.agentKind) {
+                    Text("Project Default").tag(Optional<AgentKind>.none)
+                    ForEach(AgentKind.allCases) { kind in
+                        Text(kind.title).tag(Optional(kind))
+                    }
+                }
+            }
+
+            Section("Description") {
+                TextEditor(text: $draft.description)
+                    .font(.body)
+                    .frame(minHeight: 120)
+            }
+
+            Section("Labels") {
+                TextField("Comma-separated labels", text: $draft.labelsText)
+                LabelRow(labels: draft.labels)
+            }
+
+            Section("Dependencies") {
+                let candidates = dependencyCandidates
+                if candidates.isEmpty {
+                    Text("No available dependencies")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(candidates) { candidate in
+                        Toggle(isOn: dependencyBinding(for: candidate.id)) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(candidate.identifier)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(candidate.title)
+                                    .lineLimit(2)
+                            }
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                }
+            }
+
+            Section("Events") {
+                if events.isEmpty {
+                    Text("No events")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(events) { event in
+                        RuntimeEventRow(event: event)
+                    }
+                }
+            }
+
+            Section {
+                HStack {
+                    Button("Revert") {
+                        onReset()
+                    }
+                    .disabled(!draft.hasChanges(from: task))
+
+                    Spacer()
+
+                    Button("Save") {
+                        onSave(draft.apply(to: task))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!draft.isValid || !draft.hasChanges(from: task))
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private var dependencyCandidates: [WorkItem] {
+        taskCandidates.filter { candidate in
+            candidate.id != task.id && !candidate.blockedBy.contains(task.id)
+        }
+    }
+
+    private func dependencyBinding(for id: TaskID) -> Binding<Bool> {
+        Binding(
+            get: {
+                draft.blockedBy.contains(id)
+            },
+            set: { isSelected in
+                if isSelected {
+                    draft.addBlocker(id)
+                } else {
+                    draft.removeBlocker(id)
+                }
+            }
+        )
+    }
+}
+
+private struct RuntimeEventRow: View {
+    var event: RuntimeEvent
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: iconName)
+                .foregroundStyle(iconColor)
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(event.message)
+                    .lineLimit(2)
+                Text(event.kind.rawValue)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 8)
+
+            Text(event.createdAt, style: .time)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+        }
+        .padding(.vertical, 3)
+    }
+
+    private var iconName: String {
+        switch event.kind {
+        case .taskCreated: "plus.circle"
+        case .taskUpdated: "pencil.circle"
+        case .taskMoved: "arrow.right.circle"
+        case .runQueued: "clock"
+        case .runStarted: "play.circle"
+        case .runEvent: "terminal"
+        case .runFinished: "checkmark.circle"
+        case .runFailed: "exclamationmark.triangle"
+        case .userInputRequired: "person.crop.circle.badge.questionmark"
+        }
+    }
+
+    private var iconColor: Color {
+        switch event.kind {
+        case .runFailed:
+            .red
+        case .userInputRequired:
+            .orange
+        case .runFinished:
+            .green
+        default:
+            .secondary
+        }
+    }
+}
+
+private struct TaskDraft: Equatable {
+    var sourceID: TaskID
+    var identifier: String
+    var title: String
+    var description: String
+    var state: WorkState
+    var priority: WorkPriority
+    var labelsText: String
+    var agentKind: AgentKind?
+    var blockedBy: [TaskID]
+
+    init(task: WorkItem) {
+        sourceID = task.id
+        identifier = task.identifier
+        title = task.title
+        description = task.description
+        state = task.state
+        priority = task.priority
+        labelsText = task.labels.joined(separator: ", ")
+        agentKind = task.preferredAgent?.kind
+        blockedBy = task.blockedBy
+    }
+
+    var labels: [String] {
+        var seen: Set<String> = []
+        return labelsText
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { label in
+                guard !label.isEmpty, !seen.contains(label) else {
+                    return false
+                }
+                seen.insert(label)
+                return true
+            }
+    }
+
+    var isValid: Bool {
+        !identifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    func hasChanges(from task: WorkItem) -> Bool {
+        apply(to: task) != task
+    }
+
+    mutating func addBlocker(_ id: TaskID) {
+        guard !blockedBy.contains(id), id != sourceID else {
+            return
+        }
+        blockedBy.append(id)
+    }
+
+    mutating func removeBlocker(_ id: TaskID) {
+        blockedBy.removeAll { $0 == id }
+    }
+
+    func apply(to task: WorkItem) -> WorkItem {
+        var updated = task
+        updated.identifier = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+        updated.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        updated.description = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        updated.state = state
+        updated.priority = priority
+        updated.labels = labels
+        updated.blockedBy = blockedBy.filter { $0 != task.id }
+        updated.preferredAgent = agentKind.map { AgentConfiguration(kind: $0) }
+        return updated
     }
 }
 

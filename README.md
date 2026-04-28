@@ -23,3 +23,19 @@ Run the app with:
 env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
   swift run --disable-sandbox --cache-path "$PWD/.build/swiftpm-cache" Composer
 ```
+
+Use the CLI with:
+
+```sh
+env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
+  swift run --disable-sandbox --cache-path "$PWD/.build/swiftpm-cache" composerctl help
+```
+
+Examples:
+
+```sh
+composerctl project add --name Composer --repo /path/to/repo --agent codex
+composerctl task add --project Composer --title "Add workflow loader" --state ready --priority high --label workflow
+composerctl task list --project Composer
+composerctl task move --task LOCAL-1 --state human-review --project Composer
+```
