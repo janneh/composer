@@ -48,6 +48,9 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 - [x] Task dependency editor.
 - [x] Runtime event list in inspector.
 - [x] CLI project/task creation and task movement.
+- [x] Makefile developer commands.
+- [x] UI project creation and settings.
+- [x] Stream local store changes into the UI.
 
 ### 2. Durable Local Storage
 

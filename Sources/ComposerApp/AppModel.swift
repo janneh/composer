@@ -15,6 +15,8 @@ final class AppModel: ObservableObject {
 
     private let store: LocalJSONStore
     private let orchestrator: Orchestrator
+    private var storeChangeTask: Task<Void, Never>?
+    private var reloadTask: Task<Void, Never>?
 
     init() {
         let store = Self.makeStore()
@@ -28,6 +30,7 @@ final class AppModel: ObservableObject {
                 NoopAgentRunner(kind: .gemini)
             ]
         )
+        configureStoreWatcher()
     }
 
     var selectedProject: Project? {
@@ -48,19 +51,39 @@ final class AppModel: ObservableObject {
         tasks.filter { $0.state == state }
     }
 
-    func load() async {
+    func reload() async {
         do {
             projects = try await store.listProjects()
             if projects.isEmpty {
-                try await seedInitialProject()
+                try await createInitialProject()
                 projects = try await store.listProjects()
             }
 
-            selectedProjectID = selectedProjectID ?? projects.first?.id
+            if let selectedProjectID, !projects.contains(where: { $0.id == selectedProjectID }) {
+                self.selectedProjectID = projects.first?.id
+            } else {
+                selectedProjectID = selectedProjectID ?? projects.first?.id
+            }
+
             try await refreshTasks()
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func scheduleReloadFromStoreChange() {
+        reloadTask?.cancel()
+        reloadTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled else {
+                return
+            }
+            await self?.reload()
+        }
+    }
+
+    func load() async {
+        await reload()
     }
 
     func refreshTasks() async throws {
@@ -87,6 +110,45 @@ final class AppModel: ObservableObject {
         selectedTaskID = task.id
         Task {
             await refreshSelectedTaskEvents()
+        }
+    }
+
+    func createProject(
+        name: String,
+        repositoryPath: String?,
+        workflowPath: String?,
+        defaultAgent: AgentConfiguration
+    ) async {
+        do {
+            let now = Date()
+            let project = Project(
+                name: name,
+                repositoryPath: repositoryPath,
+                workflowPath: workflowPath,
+                defaultAgent: defaultAgent,
+                createdAt: now,
+                updatedAt: now
+            )
+            try await store.upsertProject(project)
+            projects = try await store.listProjects()
+            selectedProjectID = project.id
+            selectedTaskID = nil
+            try await refreshTasks()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func updateProject(_ project: Project) async {
+        do {
+            var updated = project
+            updated.updatedAt = Date()
+            try await store.upsertProject(updated)
+            projects = try await store.listProjects()
+            selectedProjectID = updated.id
+            try await refreshTasks()
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 
@@ -159,6 +221,27 @@ final class AppModel: ObservableObject {
         }
     }
 
+    private func configureStoreWatcher() {
+        storeChangeTask?.cancel()
+        let fileURL = store.fileURL
+        storeChangeTask = Task { [weak self] in
+            do {
+                for try await _ in StoreFileWatcher.changes(fileURL: fileURL) {
+                    guard !Task.isCancelled else {
+                        return
+                    }
+                    await MainActor.run {
+                        self?.scheduleReloadFromStoreChange()
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self?.errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+
     private func refreshSelectedTaskEvents() async {
         do {
             selectedTaskEvents = try await loadSelectedTaskEvents()
@@ -174,48 +257,11 @@ final class AppModel: ObservableObject {
         return try await store.listEvents(taskID: selectedTaskID, limit: 50)
     }
 
-    private func seedInitialProject() async throws {
+    private func createInitialProject() async throws {
         let project = Project(
             name: "Local Project",
             defaultAgent: AgentConfiguration(kind: .codex, model: "default")
         )
         try await store.upsertProject(project)
-
-        let seededTasks = [
-            WorkItem(
-                projectID: project.id,
-                identifier: "LOCAL-1",
-                title: "Create Symphony-compatible task schema",
-                description: "Define the local task shape so storage and external trackers can implement the same contract.",
-                state: .ready,
-                priority: .high,
-                labels: ["core", "local-first"],
-                preferredAgent: AgentConfiguration(kind: .codex)
-            ),
-            WorkItem(
-                projectID: project.id,
-                identifier: "LOCAL-2",
-                title: "Add Claude runner adapter",
-                description: "Map Claude Code stream-json output into normalized agent run events.",
-                state: .backlog,
-                priority: .normal,
-                labels: ["agent", "claude"],
-                preferredAgent: AgentConfiguration(kind: .claude)
-            ),
-            WorkItem(
-                projectID: project.id,
-                identifier: "LOCAL-3",
-                title: "Design sync outbox boundary",
-                description: "Keep local mutations append-only so cloud sync can be introduced without rewriting the app model.",
-                state: .humanReview,
-                priority: .normal,
-                labels: ["sync", "architecture"],
-                preferredAgent: AgentConfiguration(kind: .gemini)
-            )
-        ]
-
-        for task in seededTasks {
-            try await store.upsertTask(task)
-        }
     }
 }

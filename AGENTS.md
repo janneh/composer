@@ -36,25 +36,32 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 
 ## Build And Test
 
-Use workspace-local caches because sandboxed agent sessions may not be able to write SwiftPM or Clang caches under the user home directory.
+Use `make` for normal development commands. The Makefile keeps SwiftPM and Clang caches inside `.build` because sandboxed agent sessions may not be able to write caches under the user home directory.
+
+Common commands:
+
+```sh
+make test
+make build
+make app
+make cli
+make smoke-cli
+```
+
+`make cli` installs `composerctl` to `~/.local/bin`. After that, use the CLI directly:
+
+```sh
+composerctl help
+composerctl task list
+```
+
+Raw SwiftPM commands are acceptable when diagnosing Makefile behavior, but keep the Makefile as the documented entry point.
+
+Underlying pattern, if needed:
 
 ```sh
 env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
   swift test --disable-sandbox --cache-path "$PWD/.build/swiftpm-cache"
-```
-
-Run the app with:
-
-```sh
-env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
-  swift run --disable-sandbox --cache-path "$PWD/.build/swiftpm-cache" Composer
-```
-
-Run the CLI with:
-
-```sh
-env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
-  swift run --disable-sandbox --cache-path "$PWD/.build/swiftpm-cache" composerctl help
 ```
 
 ## Implementation Notes
@@ -62,5 +69,6 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 - `WorkItem`, `Project`, `RunAttempt`, and runtime events live in `SymphonyCore`.
 - Storage mutations currently go through `LocalJSONStore`, but call sites should use protocol-shaped APIs where practical.
 - CLI mutations must append runtime events just like UI mutations.
+- `ComposerApp` consumes an `AsyncThrowingStream` of local store file changes so `composerctl` updates are reflected without restarting the app.
 - User-visible edits should append runtime events where useful so later sync has a clear mutation history.
 - Keep SwiftUI views focused on presentation; move provider/runtime behavior into packages as it grows.

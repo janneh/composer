@@ -4,6 +4,8 @@ import SymphonyCore
 
 struct RootView: View {
     @EnvironmentObject private var model: AppModel
+    @State private var showingNewProject = false
+    @State private var editingProject: Project?
 
     var body: some View {
         NavigationSplitView {
@@ -16,12 +18,28 @@ struct RootView: View {
         .toolbar {
             ToolbarItemGroup {
                 Button {
+                    showingNewProject = true
+                } label: {
+                    Label("New Project", systemImage: "folder.badge.plus")
+                }
+                .help("New Project")
+
+                Button {
+                    editingProject = model.selectedProject
+                } label: {
+                    Label("Project Settings", systemImage: "slider.horizontal.3")
+                }
+                .disabled(model.selectedProject == nil)
+                .help("Project Settings")
+
+                Button {
                     Task {
                         await model.createTask()
                     }
                 } label: {
                     Label("New Task", systemImage: "plus")
                 }
+                .disabled(model.selectedProject == nil)
                 .help("New Task")
 
                 Button {
@@ -32,6 +50,34 @@ struct RootView: View {
                     Label("Dispatch Preview", systemImage: "play")
                 }
                 .help("Dispatch Preview")
+
+                Button {
+                    Task {
+                        await model.reload()
+                    }
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                }
+                .help("Refresh")
+            }
+        }
+        .sheet(isPresented: $showingNewProject) {
+            ProjectEditorSheet(title: "New Project") { draft in
+                Task {
+                    await model.createProject(
+                        name: draft.name,
+                        repositoryPath: draft.repositoryPath,
+                        workflowPath: draft.workflowPath,
+                        defaultAgent: draft.agentConfiguration
+                    )
+                }
+            }
+        }
+        .sheet(item: $editingProject) { project in
+            ProjectEditorSheet(title: "Project Settings", project: project) { draft in
+                Task {
+                    await model.updateProject(draft.apply(to: project))
+                }
             }
         }
         .alert("Composer Error", isPresented: errorBinding) {
@@ -52,6 +98,117 @@ struct RootView: View {
                 }
             }
         )
+    }
+}
+
+private struct ProjectEditorSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var title: String
+    var onSave: (ProjectDraft) -> Void
+    @State private var draft: ProjectDraft
+
+    init(title: String, project: Project? = nil, onSave: @escaping (ProjectDraft) -> Void) {
+        self.title = title
+        self.onSave = onSave
+        _draft = State(initialValue: ProjectDraft(project: project))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(title)
+                .font(.title2)
+                .fontWeight(.semibold)
+
+            Form {
+                Section("Project") {
+                    TextField("Name", text: $draft.name)
+                    TextField("Repository path", text: $draft.repositoryPathText)
+                    TextField("Workflow path", text: $draft.workflowPathText)
+                }
+
+                Section("Default Agent") {
+                    Picker("Agent", selection: $draft.agentKind) {
+                        ForEach(AgentKind.allCases) { kind in
+                            Text(kind.title).tag(kind)
+                        }
+                    }
+
+                    TextField("Model", text: $draft.modelText)
+                }
+            }
+            .formStyle(.grouped)
+
+            HStack {
+                Button("Cancel") {
+                    dismiss()
+                }
+
+                Spacer()
+
+                Button("Save") {
+                    onSave(draft.normalized)
+                    dismiss()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!draft.isValid)
+            }
+        }
+        .padding(20)
+        .frame(width: 460, height: 430)
+    }
+}
+
+private struct ProjectDraft: Identifiable {
+    var id: String
+    var name: String
+    var repositoryPathText: String
+    var workflowPathText: String
+    var agentKind: AgentKind
+    var modelText: String
+
+    init(project: Project?) {
+        id = project?.id.rawValue ?? UUID().uuidString
+        name = project?.name ?? ""
+        repositoryPathText = project?.repositoryPath ?? ""
+        workflowPathText = project?.workflowPath ?? ""
+        agentKind = project?.defaultAgent.kind ?? .codex
+        modelText = project?.defaultAgent.model ?? ""
+    }
+
+    var isValid: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var normalized: ProjectDraft {
+        var copy = self
+        copy.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        copy.repositoryPathText = repositoryPathText.trimmingCharacters(in: .whitespacesAndNewlines)
+        copy.workflowPathText = workflowPathText.trimmingCharacters(in: .whitespacesAndNewlines)
+        copy.modelText = modelText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return copy
+    }
+
+    var repositoryPath: String? {
+        repositoryPathText.nilIfEmpty
+    }
+
+    var workflowPath: String? {
+        workflowPathText.nilIfEmpty
+    }
+
+    var agentConfiguration: AgentConfiguration {
+        AgentConfiguration(kind: agentKind, model: modelText.nilIfEmpty)
+    }
+
+    func apply(to project: Project) -> Project {
+        var updated = project
+        let draft = normalized
+        updated.name = draft.name
+        updated.repositoryPath = draft.repositoryPath
+        updated.workflowPath = draft.workflowPath
+        updated.defaultAgent = draft.agentConfiguration
+        return updated
     }
 }
 
@@ -93,14 +250,20 @@ private struct BoardView: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        ScrollView(.horizontal) {
-            HStack(alignment: .top, spacing: 12) {
-                ForEach(WorkState.boardStates) { state in
-                    BoardColumn(state: state, tasks: model.tasks(in: state))
-                        .frame(width: 280)
+        Group {
+            if model.selectedProject == nil {
+                ContentUnavailableView("No Project Selected", systemImage: "folder")
+            } else {
+                ScrollView(.horizontal) {
+                    HStack(alignment: .top, spacing: 12) {
+                        ForEach(WorkState.boardStates) { state in
+                            BoardColumn(state: state, tasks: model.tasks(in: state))
+                                .frame(width: 280)
+                        }
+                    }
+                    .padding(16)
                 }
             }
-            .padding(16)
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .navigationTitle(model.selectedProject?.name ?? "Board")
@@ -640,5 +803,12 @@ private struct FlowLayout: Layout {
             width += size.width
             height = max(height, size.height)
         }
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

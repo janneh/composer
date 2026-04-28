@@ -12,8 +12,7 @@ public actor LocalJSONStore: ProjectStore, TaskStore, RunStore, EventStore {
         static let empty = Snapshot(projects: [], tasks: [], runs: [], events: [])
     }
 
-    private let fileURL: URL
-    private var cachedSnapshot: Snapshot?
+    public nonisolated let fileURL: URL
 
     public init(fileURL: URL) {
         self.fileURL = fileURL
@@ -134,21 +133,14 @@ public actor LocalJSONStore: ProjectStore, TaskStore, RunStore, EventStore {
     }
 
     private func load() throws -> Snapshot {
-        if let cachedSnapshot {
-            return cachedSnapshot
-        }
-
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
-            cachedSnapshot = .empty
             return .empty
         }
 
         let data = try Data(contentsOf: fileURL)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let snapshot = try decoder.decode(Snapshot.self, from: data)
-        cachedSnapshot = snapshot
-        return snapshot
+        return try decoder.decode(Snapshot.self, from: data)
     }
 
     private func save(_ snapshot: Snapshot) throws {
@@ -157,7 +149,6 @@ public actor LocalJSONStore: ProjectStore, TaskStore, RunStore, EventStore {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(snapshot)
         try data.write(to: fileURL, options: [.atomic])
-        cachedSnapshot = snapshot
     }
 }
 
