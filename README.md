@@ -12,9 +12,10 @@ The first implementation keeps the important boundaries generic:
 - `SymphonyInterfaces`: protocol boundaries for storage, trackers, workflow loading, workspaces, agent runners, sync, and event sinks.
 - `SymphonyLocalStore`: a local JSON-backed store used by the initial app. SQLite can replace this behind the same protocols.
 - `SymphonySQLiteStore`: a durable SQLite-backed store with versioned schema setup, indexed queries, and JSON payload preservation.
+- `ComposerStorage`: app/CLI storage composition and backend selection.
 - `SymphonyRuntime`: the orchestration state-machine skeleton. It depends on interfaces, not concrete stores or agents.
 - `ComposerApp`: the SwiftUI macOS board and inspector.
-- `ComposerCLI`: the `composerctl` command-line surface for writing projects and tasks into the same local store.
+- `ComposerCLI`: the `composerctl` command-line surface for writing projects and tasks into the selected local store backend.
 
 ## Development
 
@@ -29,6 +30,7 @@ Use the Makefile as the main developer entry point:
 | `make open-project` | Open `Composer.xcodeproj` in Xcode |
 | `make cli` | Install `composerctl` to `~/.local/bin` |
 | `make smoke-cli` | Run a CLI smoke test against a temporary store |
+| `make smoke-cli-sqlite` | Run a CLI smoke test against a temporary SQLite store |
 
 The SwiftUI app is launched through the checked-in Xcode project so macOS receives a normal `.app` bundle. SwiftPM remains the package boundary for shared libraries, tests, and the CLI.
 
@@ -46,4 +48,5 @@ composerctl project add --name Composer --repo /path/to/repo --agent codex
 composerctl task add --project Composer --title "Add workflow loader" --state ready --priority high --label workflow
 composerctl task list --project Composer
 composerctl task move --task LOCAL-1 --state human-review --project Composer
+composerctl --store-backend sqlite --store /tmp/composer.sqlite3 task list
 ```

@@ -7,7 +7,7 @@ INSTALL_BIN := $(PREFIX)/bin
 XCODE_DERIVED_DATA := $(CURDIR)/.build/XcodeDerivedData
 XCODE_APP := $(XCODE_DERIVED_DATA)/Build/Products/Debug/Composer.app
 
-.PHONY: help build build-cli xcode-build test app cli smoke-cli open-project clean
+.PHONY: help build build-cli xcode-build test app cli smoke-cli smoke-cli-sqlite open-project clean
 
 help:
 	@echo "Targets:"
@@ -18,6 +18,7 @@ help:
 	@echo "  make open-project     Open Composer.xcodeproj"
 	@echo "  make cli              Install composerctl to $(INSTALL_BIN)"
 	@echo "  make smoke-cli        Run CLI smoke test against /tmp"
+	@echo "  make smoke-cli-sqlite Run CLI smoke test against SQLite in /tmp"
 	@echo "  make clean            Remove .build"
 
 build: xcode-build build-cli
@@ -54,6 +55,16 @@ smoke-cli: build-cli
 	$$COMPOSERCTL --store $$STORE_PATH task add --project Smoke --title "Smoke task" --state ready --priority high --label cli --agent claude; \
 	$$COMPOSERCTL --store $$STORE_PATH task move --project Smoke --task LOCAL-1 --state human-review; \
 	$$COMPOSERCTL --store $$STORE_PATH task list --project Smoke --state human-review
+
+smoke-cli-sqlite: build-cli
+	@STORE_PATH=/tmp/composer-cli-smoke.sqlite3; \
+	BIN_PATH="$$($(SWIFT) build $(SWIFT_FLAGS) --show-bin-path)"; \
+	COMPOSERCTL="$$BIN_PATH/composerctl"; \
+	rm -f $$STORE_PATH; \
+	$$COMPOSERCTL --store-backend sqlite --store $$STORE_PATH project add --name Smoke --agent codex; \
+	$$COMPOSERCTL --store-backend sqlite --store $$STORE_PATH task add --project Smoke --title "Smoke task" --state ready --priority high --label cli --agent claude; \
+	$$COMPOSERCTL --store-backend sqlite --store $$STORE_PATH task move --project Smoke --task LOCAL-1 --state human-review; \
+	$$COMPOSERCTL --store-backend sqlite --store $$STORE_PATH task list --project Smoke --state human-review
 
 clean:
 	rm -rf .build

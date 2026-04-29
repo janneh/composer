@@ -1,6 +1,8 @@
 import Foundation
 import SymphonyCore
 
+public typealias ComposerStore = ProjectStore & TaskStore & RunStore & EventStore
+
 public protocol ProjectStore: Sendable {
     func listProjects() async throws -> [Project]
     func project(id: ProjectID) async throws -> Project?

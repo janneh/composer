@@ -1,6 +1,7 @@
 import Foundation
+import ComposerStorage
 import SymphonyCore
-import SymphonyLocalStore
+import SymphonyInterfaces
 
 @main
 struct ComposerCLI {
@@ -20,7 +21,7 @@ struct ComposerCLI {
 private struct Command {
     func run(arguments rawArguments: [String]) async throws {
         var arguments = rawArguments
-        let storePath = try removeStorePath(arguments: &arguments)
+        let storeConfiguration = try removeStoreConfiguration(arguments: &arguments)
 
         guard let namespace = arguments.first else {
             printHelp()
@@ -33,46 +34,51 @@ private struct Command {
         case "help", "--help", "-h":
             printHelp()
         case "project", "projects":
-            let store = try makeStore(path: storePath)
+            let store = try StoreFactory.makeStore(configuration: storeConfiguration).store
             try await runProjectCommand(arguments: arguments, store: store)
         case "task", "tasks":
-            let store = try makeStore(path: storePath)
+            let store = try StoreFactory.makeStore(configuration: storeConfiguration).store
             try await runTaskCommand(arguments: arguments, store: store)
         default:
             throw CLIError("Unknown command '\(namespace)'. Run composerctl help.")
         }
     }
 
-    private func removeStorePath(arguments: inout [String]) throws -> String? {
-        if let index = arguments.firstIndex(of: "--store") {
+    private func removeStoreConfiguration(arguments: inout [String]) throws -> StoreConfiguration {
+        let storePath = try removeGlobalValue(named: "store", arguments: &arguments)
+        let backendValue = try removeGlobalValue(named: "store-backend", arguments: &arguments)
+            ?? removeGlobalValue(named: "store-kind", arguments: &arguments)
+        let backend = try backendValue.map(StoreBackend.init(argument:)) ?? .json
+        return StoreConfiguration(
+            backend: backend,
+            fileURL: storePath.map { URL(fileURLWithPath: $0) }
+        )
+    }
+
+    private func removeGlobalValue(named name: String, arguments: inout [String]) throws -> String? {
+        let flag = "--\(name)"
+        if let index = arguments.firstIndex(of: flag) {
             guard index + 1 < arguments.count else {
-                throw CLIError("Missing value for --store.")
+                throw CLIError("Missing value for \(flag).")
             }
-            let path = arguments[index + 1]
+            let value = arguments[index + 1]
             arguments.removeSubrange(index...(index + 1))
-            return path
+            return value
         }
 
-        if let index = arguments.firstIndex(where: { $0.hasPrefix("--store=") }) {
+        if let index = arguments.firstIndex(where: { $0.hasPrefix("\(flag)=") }) {
             let token = arguments.remove(at: index)
-            let path = String(token.dropFirst("--store=".count))
-            guard !path.isEmpty else {
-                throw CLIError("Missing value for --store.")
+            let value = String(token.dropFirst(flag.count + 1))
+            guard !value.isEmpty else {
+                throw CLIError("Missing value for \(flag).")
             }
-            return path
+            return value
         }
 
         return nil
     }
 
-    private func makeStore(path: String?) throws -> LocalJSONStore {
-        if let path {
-            return LocalJSONStore(fileURL: URL(fileURLWithPath: path))
-        }
-        return try LocalJSONStore.defaultStore()
-    }
-
-    private func runProjectCommand(arguments: [String], store: LocalJSONStore) async throws {
+    private func runProjectCommand(arguments: [String], store: any ComposerStore) async throws {
         var arguments = arguments
         guard let action = arguments.first else {
             throw CLIError("Missing project action. Use 'project list' or 'project add'.")
@@ -107,7 +113,7 @@ private struct Command {
         }
     }
 
-    private func runTaskCommand(arguments: [String], store: LocalJSONStore) async throws {
+    private func runTaskCommand(arguments: [String], store: any ComposerStore) async throws {
         var arguments = arguments
         guard let action = arguments.first else {
             throw CLIError("Missing task action. Use 'task list', 'task add', or 'task move'.")
@@ -170,7 +176,7 @@ private struct Command {
         }
     }
 
-    private func resolveProject(_ selector: String?, store: LocalJSONStore, required: Bool) async throws -> Project? {
+    private func resolveProject(_ selector: String?, store: any ComposerStore, required: Bool) async throws -> Project? {
         let projects = try await store.listProjects()
 
         guard let selector, !selector.isEmpty else {
@@ -191,7 +197,7 @@ private struct Command {
         throw CLIError("Project '\(selector)' was not found.")
     }
 
-    private func resolveTask(_ selector: String, store: LocalJSONStore, projectID: ProjectID?) async throws -> WorkItem {
+    private func resolveTask(_ selector: String, store: any ComposerStore, projectID: ProjectID?) async throws -> WorkItem {
         let tasks = try await store.listTasks(projectID: projectID)
         let normalizedSelector = selector.normalizedForLookup
         let matches = tasks.filter { task in
@@ -210,7 +216,7 @@ private struct Command {
         return match
     }
 
-    private func resolveTaskIDs(_ selectors: [String], store: LocalJSONStore, projectID: ProjectID) async throws -> [TaskID] {
+    private func resolveTaskIDs(_ selectors: [String], store: any ComposerStore, projectID: ProjectID) async throws -> [TaskID] {
         var resolved: [TaskID] = []
         for selector in selectors {
             let task = try await resolveTask(selector, store: store, projectID: projectID)
@@ -388,7 +394,8 @@ private func printHelp() {
         composerctl
 
         Global options:
-          --store PATH                         Use an explicit local store JSON file
+          --store PATH                         Use an explicit local store file
+          --store-backend json|sqlite          Select the local store backend (default: json)
 
         Project commands:
           project list [--json]

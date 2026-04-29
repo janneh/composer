@@ -11,6 +11,7 @@ let package = Package(
     products: [
         .executable(name: "Composer", targets: ["ComposerApp"]),
         .executable(name: "composerctl", targets: ["ComposerCLI"]),
+        .library(name: "ComposerStorage", targets: ["ComposerStorage"]),
         .library(name: "SymphonyCore", targets: ["SymphonyCore"]),
         .library(name: "SymphonyInterfaces", targets: ["SymphonyInterfaces"]),
         .library(name: "SymphonyLocalStore", targets: ["SymphonyLocalStore"]),
@@ -38,6 +39,15 @@ let package = Package(
             name: "SymphonyRuntime",
             dependencies: ["SymphonyCore", "SymphonyInterfaces"]
         ),
+        .target(
+            name: "ComposerStorage",
+            dependencies: [
+                "SymphonyCore",
+                "SymphonyInterfaces",
+                "SymphonyLocalStore",
+                "SymphonySQLiteStore"
+            ]
+        ),
         .executableTarget(
             name: "ComposerApp",
             dependencies: [
@@ -50,8 +60,9 @@ let package = Package(
         .executableTarget(
             name: "ComposerCLI",
             dependencies: [
+                "ComposerStorage",
                 "SymphonyCore",
-                "SymphonyLocalStore"
+                "SymphonyInterfaces"
             ]
         ),
         .testTarget(
@@ -61,6 +72,10 @@ let package = Package(
         .testTarget(
             name: "SymphonySQLiteStoreTests",
             dependencies: ["SymphonyCore", "SymphonySQLiteStore"]
+        ),
+        .testTarget(
+            name: "ComposerStorageTests",
+            dependencies: ["ComposerStorage", "SymphonyCore"]
         )
     ]
 )

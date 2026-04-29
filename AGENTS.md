@@ -23,6 +23,7 @@ The repository is licensed under Apache-2.0.
 - `SymphonyInterfaces`: ports/protocols for stores, trackers, workflow, workspace, agents, sync, and runtime events.
 - `SymphonyLocalStore`: local JSON store for initial development and tests.
 - `SymphonySQLiteStore`: durable SQLite store conforming to the same store protocols. It currently preserves full domain objects as JSON payloads plus indexed columns for queries.
+- `ComposerStorage`: edge-level storage factory for choosing JSON or SQLite while returning protocol-shaped stores.
 - `SymphonyRuntime`: orchestration state-machine skeleton.
 - `ComposerApp`: SwiftUI macOS UI.
 - `ComposerCLI`: `composerctl` command-line surface for inserting projects/tasks into the same local store as the app.
@@ -54,6 +55,7 @@ make app
 make open-project
 make cli
 make smoke-cli
+make smoke-cli-sqlite
 ```
 
 `make app` builds the checked-in Xcode project and opens the resulting `Composer.app`. Use `make open-project` when working directly in Xcode.
@@ -77,8 +79,8 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 ## Implementation Notes
 
 - `WorkItem`, `Project`, `RunAttempt`, and runtime events live in `SymphonyCore`.
-- Storage mutations currently go through `LocalJSONStore`, but call sites should use protocol-shaped APIs where practical.
-- `SymphonySQLiteStore` is available for durable storage tests and future app/CLI wiring, but `ComposerApp` and `composerctl` still default to `SymphonyLocalStore`.
+- Storage mutations should go through protocol-shaped APIs where practical. Concrete backend selection belongs at app/CLI edges.
+- `composerctl` defaults to JSON storage and can use SQLite with `--store-backend sqlite`; `ComposerApp` still defaults to `SymphonyLocalStore`.
 - CLI mutations must append runtime events just like UI mutations.
 - `ComposerApp` consumes an `AsyncThrowingStream` of local store file changes so `composerctl` updates are reflected without restarting the app.
 - User-visible edits should append runtime events where useful so later sync has a clear mutation history.
