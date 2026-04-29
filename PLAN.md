@@ -56,8 +56,8 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 
 ### 2. Durable Local Storage
 
-- [ ] Add `SymphonySQLiteStore`.
-- [ ] Add schema migrations.
+- [x] Add `SymphonySQLiteStore`.
+- [x] Add initial schema migration.
 - [ ] Add append-only event log.
 - [ ] Add sync metadata tables.
 - [ ] Add full-text search indexes.
@@ -97,4 +97,4 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 
 ## Current Focus
 
-Build the local board into a useful task authoring surface before introducing durable SQLite and real agent execution.
+Wire durable local storage into the app/CLI behind configuration, then continue toward workflow loading and real agent execution.

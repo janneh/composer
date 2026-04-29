@@ -14,6 +14,7 @@ let package = Package(
         .library(name: "SymphonyCore", targets: ["SymphonyCore"]),
         .library(name: "SymphonyInterfaces", targets: ["SymphonyInterfaces"]),
         .library(name: "SymphonyLocalStore", targets: ["SymphonyLocalStore"]),
+        .library(name: "SymphonySQLiteStore", targets: ["SymphonySQLiteStore"]),
         .library(name: "SymphonyRuntime", targets: ["SymphonyRuntime"])
     ],
     targets: [
@@ -25,6 +26,13 @@ let package = Package(
         .target(
             name: "SymphonyLocalStore",
             dependencies: ["SymphonyCore", "SymphonyInterfaces"]
+        ),
+        .target(
+            name: "SymphonySQLiteStore",
+            dependencies: ["SymphonyCore", "SymphonyInterfaces"],
+            linkerSettings: [
+                .linkedLibrary("sqlite3")
+            ]
         ),
         .target(
             name: "SymphonyRuntime",
@@ -49,6 +57,10 @@ let package = Package(
         .testTarget(
             name: "SymphonyCoreTests",
             dependencies: ["SymphonyCore"]
+        ),
+        .testTarget(
+            name: "SymphonySQLiteStoreTests",
+            dependencies: ["SymphonyCore", "SymphonySQLiteStore"]
         )
     ]
 )

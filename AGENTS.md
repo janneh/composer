@@ -22,6 +22,7 @@ The repository is licensed under Apache-2.0.
 - `SymphonyCore`: provider-neutral domain models and identifiers.
 - `SymphonyInterfaces`: ports/protocols for stores, trackers, workflow, workspace, agents, sync, and runtime events.
 - `SymphonyLocalStore`: local JSON store for initial development and tests.
+- `SymphonySQLiteStore`: durable SQLite store conforming to the same store protocols. It currently preserves full domain objects as JSON payloads plus indexed columns for queries.
 - `SymphonyRuntime`: orchestration state-machine skeleton.
 - `ComposerApp`: SwiftUI macOS UI.
 - `ComposerCLI`: `composerctl` command-line surface for inserting projects/tasks into the same local store as the app.
@@ -33,7 +34,6 @@ Xcode framework targets used by the app must keep `LD_DYLIB_INSTALL_NAME` set to
 
 ## Planned Packages
 
-- `SymphonySQLiteStore`: durable local storage with migrations and event log.
 - `SymphonyWorkflow`: `WORKFLOW.md` discovery, validation, and prompt rendering.
 - `SymphonyWorkspace`: workspace/worktree lifecycle.
 - `SymphonyCodexAgent`: Codex runner.
@@ -78,6 +78,7 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 
 - `WorkItem`, `Project`, `RunAttempt`, and runtime events live in `SymphonyCore`.
 - Storage mutations currently go through `LocalJSONStore`, but call sites should use protocol-shaped APIs where practical.
+- `SymphonySQLiteStore` is available for durable storage tests and future app/CLI wiring, but `ComposerApp` and `composerctl` still default to `SymphonyLocalStore`.
 - CLI mutations must append runtime events just like UI mutations.
 - `ComposerApp` consumes an `AsyncThrowingStream` of local store file changes so `composerctl` updates are reflected without restarting the app.
 - User-visible edits should append runtime events where useful so later sync has a clear mutation history.
