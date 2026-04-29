@@ -1,7 +1,8 @@
 import Foundation
 import SwiftUI
+import ComposerStorage
 import SymphonyCore
-import SymphonyLocalStore
+import SymphonyInterfaces
 import SymphonyRuntime
 
 @MainActor
@@ -13,17 +14,23 @@ final class AppModel: ObservableObject {
     @Published var selectedTaskID: TaskID?
     @Published var errorMessage: String?
 
-    private let store: LocalJSONStore
+    private let store: any ComposerStore
     private let orchestrator: Orchestrator
     private var storeChangeTask: Task<Void, Never>?
     private var reloadTask: Task<Void, Never>?
+    private(set) var storageBackend: StoreBackend
+    private(set) var storeFileURL: URL
 
-    init() {
-        let store = Self.makeStore()
-        self.store = store
+    init(storeSelection: StoreSelection? = nil) {
+        let resolvedSelection = storeSelection.map { ($0, nil) } ?? Self.makeStoreSelection()
+        let selection = resolvedSelection.0
+        store = selection.store
+        storageBackend = selection.backend
+        storeFileURL = selection.fileURL
+        errorMessage = resolvedSelection.1
         orchestrator = Orchestrator(
-            taskStore: store,
-            projectStore: store,
+            taskStore: selection.store,
+            projectStore: selection.store,
             runners: [
                 NoopAgentRunner(kind: .codex),
                 NoopAgentRunner(kind: .claude),
@@ -211,19 +218,34 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private static func makeStore() -> LocalJSONStore {
+    private static func makeStoreSelection() -> (StoreSelection, String?) {
         do {
-            return try LocalJSONStore.defaultStore()
+            let configuration = try AppStorageConfiguration.fromLaunchConfiguration()
+            return (try StoreFactory.makeStore(configuration: configuration.storeConfiguration), nil)
         } catch {
             let fallback = FileManager.default.temporaryDirectory
                 .appendingPathComponent("Composer-local-store.json")
-            return LocalJSONStore(fileURL: fallback)
+            do {
+                let selection = try StoreFactory.makeStore(
+                    configuration: StoreConfiguration(backend: .json, fileURL: fallback)
+                )
+                return (
+                    selection,
+                    "Storage configuration failed: \(error.localizedDescription). Using \(fallback.path)."
+                )
+            } catch {
+                preconditionFailure("Could not create fallback Composer store: \(error.localizedDescription)")
+            }
         }
     }
 
     private func configureStoreWatcher() {
         storeChangeTask?.cancel()
-        let fileURL = store.fileURL
+        guard storageBackend == .json else {
+            return
+        }
+
+        let fileURL = storeFileURL
         storeChangeTask = Task { [weak self] in
             do {
                 for try await _ in StoreFileWatcher.changes(fileURL: fileURL) {

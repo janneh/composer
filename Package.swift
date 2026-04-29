@@ -51,11 +51,15 @@ let package = Package(
         .executableTarget(
             name: "ComposerApp",
             dependencies: [
+                "ComposerStorage",
                 "SymphonyCore",
                 "SymphonyInterfaces",
-                "SymphonyLocalStore",
                 "SymphonyRuntime"
             ]
+        ),
+        .testTarget(
+            name: "ComposerAppTests",
+            dependencies: ["ComposerApp", "ComposerStorage"]
         ),
         .executableTarget(
             name: "ComposerCLI",

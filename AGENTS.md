@@ -28,6 +28,7 @@ The repository is licensed under Apache-2.0.
 - `ComposerApp`: SwiftUI macOS UI.
 - `ComposerCLI`: `composerctl` command-line surface for inserting projects/tasks into the same local store as the app.
 - `Tests/SymphonyCoreTests`: focused domain tests.
+- `Tests/ComposerAppTests`: app storage configuration and composition tests.
 
 The repository also contains `Composer.xcodeproj`, which builds and launches the macOS `.app` bundle. Keep SwiftPM as the package/module boundary, and keep the Xcode project in sync when app-facing source files or app-linked framework targets change.
 
@@ -80,8 +81,8 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 
 - `WorkItem`, `Project`, `RunAttempt`, and runtime events live in `SymphonyCore`.
 - Storage mutations should go through protocol-shaped APIs where practical. Concrete backend selection belongs at app/CLI edges.
-- `composerctl` defaults to JSON storage and can use SQLite with `--store-backend sqlite`; `ComposerApp` still defaults to `SymphonyLocalStore`.
+- `composerctl` defaults to JSON storage and can use SQLite with `--store-backend sqlite`; `ComposerApp` uses `ComposerStorage` and can select JSON or SQLite with `COMPOSER_STORE_BACKEND`, `COMPOSER_STORE_PATH`, or the `ComposerStoreBackend` / `ComposerStorePath` app defaults.
 - CLI mutations must append runtime events just like UI mutations.
-- `ComposerApp` consumes an `AsyncThrowingStream` of local store file changes so `composerctl` updates are reflected without restarting the app.
+- `ComposerApp` consumes an `AsyncThrowingStream` of JSON store file changes so `composerctl` JSON updates are reflected without restarting the app. SQLite app refresh is currently explicit/in-process.
 - User-visible edits should append runtime events where useful so later sync has a clear mutation history.
 - Keep SwiftUI views focused on presentation; move provider/runtime behavior into packages as it grows.

@@ -23,8 +23,8 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 
 - `SymphonyCore`: provider-neutral models and identifiers.
 - `SymphonyInterfaces`: storage, tracker, workflow, workspace, agent, sync, and event protocols.
-- `SymphonyLocalStore`: current local JSON store; useful for demo/test storage.
-- `SymphonySQLiteStore`: planned durable local store with migrations and indexes.
+- `SymphonyLocalStore`: local JSON store; useful for demo/test storage and external file-change streaming.
+- `SymphonySQLiteStore`: durable local store with migrations, indexed queries, and JSON payload preservation.
 - `SymphonyWorkflow`: planned `WORKFLOW.md` discovery, parsing, validation, and prompt rendering.
 - `SymphonyWorkspace`: planned worktree/workspace lifecycle and cleanup policy.
 - `SymphonyAgents`: planned shared runner protocol support types if `SymphonyInterfaces` grows too large.
@@ -60,6 +60,7 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 - [x] Add initial schema migration.
 - [x] Add tested storage backend factory.
 - [x] Wire `composerctl` to JSON/SQLite backend selection.
+- [x] Wire `ComposerApp` to JSON/SQLite backend selection.
 - [ ] Add append-only event log.
 - [ ] Add sync metadata tables.
 - [ ] Add full-text search indexes.
@@ -99,4 +100,4 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 
 ## Current Focus
 
-Wire durable local storage into the app UI behind configuration, then continue toward workflow loading and real agent execution.
+Add `WORKFLOW.md` loading/parsing so tasks can become executable agent inputs rather than only trackable records.

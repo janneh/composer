@@ -10,7 +10,7 @@ The first implementation keeps the important boundaries generic:
 
 - `SymphonyCore`: provider-neutral domain models for projects, work items, runs, agents, and runtime events.
 - `SymphonyInterfaces`: protocol boundaries for storage, trackers, workflow loading, workspaces, agent runners, sync, and event sinks.
-- `SymphonyLocalStore`: a local JSON-backed store used by the initial app. SQLite can replace this behind the same protocols.
+- `SymphonyLocalStore`: a local JSON-backed store selectable by the app and CLI.
 - `SymphonySQLiteStore`: a durable SQLite-backed store with versioned schema setup, indexed queries, and JSON payload preservation.
 - `ComposerStorage`: app/CLI storage composition and backend selection.
 - `SymphonyRuntime`: the orchestration state-machine skeleton. It depends on interfaces, not concrete stores or agents.
@@ -50,3 +50,11 @@ composerctl task list --project Composer
 composerctl task move --task LOCAL-1 --state human-review --project Composer
 composerctl --store-backend sqlite --store /tmp/composer.sqlite3 task list
 ```
+
+The app defaults to the JSON store. For launch-time backend selection, set:
+
+```sh
+COMPOSER_STORE_BACKEND=sqlite COMPOSER_STORE_PATH=/tmp/composer.sqlite3 .build/XcodeDerivedData/Build/Products/Debug/Composer.app/Contents/MacOS/Composer
+```
+
+The same values can also be stored in app defaults with `ComposerStoreBackend` and `ComposerStorePath`.
