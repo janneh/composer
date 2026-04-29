@@ -134,7 +134,7 @@ final class OrchestratorDispatchTests: XCTestCase {
     }
 }
 
-private actor InMemoryStore: ProjectStore, TaskStore, RunStore, EventStore {
+actor InMemoryStore: ProjectStore, TaskStore, RunStore, EventStore {
     private var projects: [ProjectID: Project]
     private var tasks: [TaskID: WorkItem]
     private var runs: [RunID: RunAttempt] = [:]

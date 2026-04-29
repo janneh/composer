@@ -31,7 +31,7 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 - `SymphonyCodexAgent`: planned Codex app-server runner.
 - `SymphonyClaudeAgent`: planned Claude CLI/Agent SDK runner.
 - `SymphonyGeminiAgent`: planned Gemini runner.
-- `SymphonyRuntime`: orchestration state machine, dispatch planning, and dispatch execution.
+- `SymphonyRuntime`: orchestration state machine, dispatch planning/execution, and normalized agent-event projection.
 - `ComposerApp`: SwiftUI macOS app surface.
 - `ComposerCLI`: command-line insertion and editing surface backed by the same local store.
 
@@ -77,7 +77,7 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 ### 4. Agent Runtime
 
 - [x] Dispatch ready tasks into run records, workflow prompts, workspaces, and agent runners.
-- [ ] Add normalized agent event model coverage for tool use, partial output, completion, failures, and input requests.
+- [x] Add normalized agent event model coverage for tool use, partial output, completion, failures, and input requests.
 - [ ] Add Codex runner.
 - [ ] Add Claude runner.
 - [ ] Add Gemini runner.

@@ -42,6 +42,7 @@ public struct DispatchExecution: Codable, Hashable, Sendable {
 public enum OrchestratorError: Error, Equatable, CustomStringConvertible, LocalizedError {
     case missingDispatchDependencies([String])
     case projectNotFound(ProjectID)
+    case runNotFound(RunID)
 
     public var description: String {
         switch self {
@@ -49,11 +50,118 @@ public enum OrchestratorError: Error, Equatable, CustomStringConvertible, Locali
             return "Dispatch requires missing dependencies: \(names.joined(separator: ", "))"
         case let .projectNotFound(projectID):
             return "Project not found for dispatch: \(projectID.rawValue)"
+        case let .runNotFound(runID):
+            return "Run not found: \(runID.rawValue)"
         }
     }
 
     public var errorDescription: String? {
         description
+    }
+}
+
+public struct AgentRunEventProjection: Hashable, Sendable {
+    public var run: RunAttempt
+    public var event: RuntimeEvent
+
+    public init(run: RunAttempt, event: RuntimeEvent) {
+        self.run = run
+        self.event = event
+    }
+
+    public static func project(_ agentEvent: AgentRunEvent, run: RunAttempt, taskID: TaskID, at date: Date) -> AgentRunEventProjection {
+        var updatedRun = run
+        let runtimeEvent: RuntimeEvent
+
+        switch agentEvent {
+        case let .started(message):
+            updatedRun.status = .running
+            updatedRun.startedAt = updatedRun.startedAt ?? date
+            runtimeEvent = RuntimeEvent(
+                taskID: taskID,
+                runID: run.id,
+                kind: .runStarted,
+                message: message,
+                payload: ["agentEvent": "started"],
+                createdAt: date
+            )
+        case let .progress(message):
+            runtimeEvent = RuntimeEvent(
+                taskID: taskID,
+                runID: run.id,
+                kind: .runEvent,
+                message: message,
+                payload: ["agentEvent": "progress"],
+                createdAt: date
+            )
+        case let .toolUse(name, inputSummary):
+            var payload = [
+                "agentEvent": "toolUse",
+                "toolName": name
+            ]
+            if let inputSummary {
+                payload["inputSummary"] = inputSummary
+            }
+            runtimeEvent = RuntimeEvent(
+                taskID: taskID,
+                runID: run.id,
+                kind: .runEvent,
+                message: "Tool used: \(name)",
+                payload: payload,
+                createdAt: date
+            )
+        case let .partialOutput(output):
+            runtimeEvent = RuntimeEvent(
+                taskID: taskID,
+                runID: run.id,
+                kind: .runEvent,
+                message: "Partial output",
+                payload: [
+                    "agentEvent": "partialOutput",
+                    "output": output
+                ],
+                createdAt: date
+            )
+        case let .waitingForInput(prompt):
+            updatedRun.status = .waitingForInput
+            runtimeEvent = RuntimeEvent(
+                taskID: taskID,
+                runID: run.id,
+                kind: .userInputRequired,
+                message: prompt,
+                payload: [
+                    "agentEvent": "waitingForInput",
+                    "prompt": prompt
+                ],
+                createdAt: date
+            )
+        case let .completed(summary):
+            updatedRun.status = .succeeded
+            updatedRun.finishedAt = date
+            updatedRun.summary = summary
+            runtimeEvent = RuntimeEvent(
+                taskID: taskID,
+                runID: run.id,
+                kind: .runFinished,
+                message: summary,
+                payload: ["agentEvent": "completed"],
+                createdAt: date
+            )
+        case let .failed(message):
+            updatedRun.status = .failed
+            updatedRun.finishedAt = date
+            updatedRun.summary = message
+            runtimeEvent = RuntimeEvent(
+                taskID: taskID,
+                runID: run.id,
+                kind: .runFailed,
+                message: message,
+                payload: ["agentEvent": "failed"],
+                createdAt: date
+            )
+        }
+
+        return AgentRunEventProjection(run: updatedRun, event: runtimeEvent)
     }
 }
 
@@ -208,6 +316,19 @@ public actor Orchestrator {
         return DispatchExecution(plan: plan, startedRuns: startedRuns, failedRuns: failedRuns)
     }
 
+    public func recordAgentEvent(_ agentEvent: AgentRunEvent, taskID: TaskID, runID: RunID) async throws -> RunAttempt {
+        let dependencies = try eventRecordingDependencies()
+        let runs = try await dependencies.runStore.listRuns(taskID: taskID)
+        guard let run = runs.first(where: { $0.id == runID }) else {
+            throw OrchestratorError.runNotFound(runID)
+        }
+
+        let projection = AgentRunEventProjection.project(agentEvent, run: run, taskID: taskID, at: now())
+        try await dependencies.runStore.upsertRun(projection.run)
+        try await dependencies.eventStore.appendEvent(projection.event)
+        return projection.run
+    }
+
     private func dispatchDependencies() throws -> (
         runStore: RunStore,
         eventStore: EventStore,
@@ -228,6 +349,19 @@ public actor Orchestrator {
         }
 
         return (runStore, eventStore, workflowProvider, workspaceProvider)
+    }
+
+    private func eventRecordingDependencies() throws -> (runStore: RunStore, eventStore: EventStore) {
+        var missing: [String] = []
+        if runStore == nil { missing.append("runStore") }
+        if eventStore == nil { missing.append("eventStore") }
+        guard missing.isEmpty,
+              let runStore,
+              let eventStore else {
+            throw OrchestratorError.missingDispatchDependencies(missing)
+        }
+
+        return (runStore, eventStore)
     }
 }
 
