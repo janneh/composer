@@ -16,6 +16,7 @@ The first implementation keeps the important boundaries generic:
 - `SymphonyWorkspace`: local per-task workspace preparation backed by Git worktrees, with cleanup policy metadata on runs.
 - `SymphonyCodexAgent`: Codex CLI runner implementation behind the generic `AgentRunner` protocol.
 - `SymphonyClaudeAgent`: Claude Code CLI runner implementation behind the generic `AgentRunner` protocol.
+- `SymphonyGeminiAgent`: Gemini CLI runner implementation behind the generic `AgentRunner` protocol.
 - `ComposerStorage`: app/CLI storage composition and backend selection.
 - `SymphonyRuntime`: dispatch planning/execution and normalized agent-event projection across stores, workflow providers, workspace providers, and agent runners. It depends on interfaces, not concrete providers.
 - `ComposerApp`: the SwiftUI macOS board and inspector.

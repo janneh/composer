@@ -29,6 +29,7 @@ The repository is licensed under Apache-2.0.
 - `SymphonyRuntime`: dispatch planning/execution and normalized agent-event projection across stores, workflow providers, workspace providers, and agent runners.
 - `SymphonyCodexAgent`: Codex CLI runner implementation behind the generic agent runner protocol.
 - `SymphonyClaudeAgent`: Claude Code CLI runner implementation behind the generic agent runner protocol.
+- `SymphonyGeminiAgent`: Gemini CLI runner implementation behind the generic agent runner protocol.
 - `ComposerApp`: SwiftUI macOS UI.
 - `ComposerCLI`: `composerctl` command-line surface for inserting projects/tasks into the same local store as the app.
 - `Tests/SymphonyCoreTests`: focused domain tests.
@@ -39,8 +40,6 @@ The repository also contains `Composer.xcodeproj`, which builds and launches the
 Xcode framework targets used by the app must keep `LD_DYLIB_INSTALL_NAME` set to `@rpath/$(EXECUTABLE_PATH)` so the app loads embedded Composer frameworks from `Composer.app/Contents/Frameworks` instead of `/Library/Frameworks`.
 
 ## Planned Packages
-
-- `SymphonyGeminiAgent`: Gemini runner.
 
 ## Build And Test
 
@@ -94,5 +93,6 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 - `SymphonyRuntime.AgentRunEventProjection` maps provider-neutral agent events into persisted runtime events and run status updates.
 - `SymphonyCodexAgent.CodexAgentRunner` wraps `codex exec --json` and maps JSONL output into normalized `AgentRunEvent` values.
 - `SymphonyClaudeAgent.ClaudeAgentRunner` wraps `claude --print --output-format stream-json` and maps stream output into normalized `AgentRunEvent` values.
+- `SymphonyGeminiAgent.GeminiAgentRunner` wraps `gemini --prompt` and maps process output into normalized `AgentRunEvent` values.
 - User-visible edits should append runtime events where useful so later sync has a clear mutation history.
 - Keep SwiftUI views focused on presentation; move provider/runtime behavior into packages as it grows.

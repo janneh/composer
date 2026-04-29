@@ -20,7 +20,8 @@ let package = Package(
         .library(name: "SymphonyWorkflow", targets: ["SymphonyWorkflow"]),
         .library(name: "SymphonyWorkspace", targets: ["SymphonyWorkspace"]),
         .library(name: "SymphonyCodexAgent", targets: ["SymphonyCodexAgent"]),
-        .library(name: "SymphonyClaudeAgent", targets: ["SymphonyClaudeAgent"])
+        .library(name: "SymphonyClaudeAgent", targets: ["SymphonyClaudeAgent"]),
+        .library(name: "SymphonyGeminiAgent", targets: ["SymphonyGeminiAgent"])
     ],
     targets: [
         .target(name: "SymphonyCore"),
@@ -57,6 +58,10 @@ let package = Package(
         ),
         .target(
             name: "SymphonyClaudeAgent",
+            dependencies: ["SymphonyCore", "SymphonyInterfaces"]
+        ),
+        .target(
+            name: "SymphonyGeminiAgent",
             dependencies: ["SymphonyCore", "SymphonyInterfaces"]
         ),
         .target(
@@ -117,6 +122,10 @@ let package = Package(
         .testTarget(
             name: "SymphonyClaudeAgentTests",
             dependencies: ["SymphonyCore", "SymphonyClaudeAgent"]
+        ),
+        .testTarget(
+            name: "SymphonyGeminiAgentTests",
+            dependencies: ["SymphonyCore", "SymphonyGeminiAgent"]
         ),
         .testTarget(
             name: "ComposerStorageTests",
