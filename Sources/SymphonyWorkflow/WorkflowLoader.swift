@@ -50,9 +50,11 @@ public struct WorkflowLoader {
 
     public func validate(project: Project) -> [WorkflowDiagnostic] {
         do {
-            _ = try resolveWorkflowURL(project: project)
+            _ = try load(project: project)
             return []
         } catch let error as WorkflowLoaderError {
+            return [WorkflowDiagnostic(severity: .error, message: error.description)]
+        } catch let error as WorkflowParserError {
             return [WorkflowDiagnostic(severity: .error, message: error.description)]
         } catch {
             return [WorkflowDiagnostic(severity: .error, message: error.localizedDescription)]
@@ -90,7 +92,7 @@ public struct WorkflowLoader {
     }
 }
 
-public enum WorkflowLoaderError: Error, Equatable, CustomStringConvertible {
+public enum WorkflowLoaderError: Error, Equatable, CustomStringConvertible, LocalizedError {
     case workflowNotFound(projectID: ProjectID, candidates: [URL])
 
     public var description: String {
@@ -102,6 +104,10 @@ public enum WorkflowLoaderError: Error, Equatable, CustomStringConvertible {
             }
             return "No WORKFLOW.md found for project \(projectID.rawValue) at: \(candidateList)"
         }
+    }
+
+    public var errorDescription: String? {
+        description
     }
 }
 

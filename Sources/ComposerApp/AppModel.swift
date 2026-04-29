@@ -4,27 +4,31 @@ import ComposerStorage
 import SymphonyCore
 import SymphonyInterfaces
 import SymphonyRuntime
+import SymphonyWorkflow
 
 @MainActor
 final class AppModel: ObservableObject {
     @Published private(set) var projects: [Project] = []
     @Published private(set) var tasks: [WorkItem] = []
     @Published private(set) var selectedTaskEvents: [RuntimeEvent] = []
+    @Published private(set) var workflowDiagnostics: [WorkflowDiagnostic] = []
     @Published var selectedProjectID: ProjectID?
     @Published var selectedTaskID: TaskID?
     @Published var errorMessage: String?
 
     private let store: any ComposerStore
     private let orchestrator: Orchestrator
+    private let workflowLoader: WorkflowLoader
     private var storeChangeTask: Task<Void, Never>?
     private var reloadTask: Task<Void, Never>?
     private(set) var storageBackend: StoreBackend
     private(set) var storeFileURL: URL
 
-    init(storeSelection: StoreSelection? = nil) {
+    init(storeSelection: StoreSelection? = nil, workflowLoader: WorkflowLoader = WorkflowLoader()) {
         let resolvedSelection = storeSelection.map { ($0, nil) } ?? Self.makeStoreSelection()
         let selection = resolvedSelection.0
         store = selection.store
+        self.workflowLoader = workflowLoader
         storageBackend = selection.backend
         storeFileURL = selection.fileURL
         errorMessage = resolvedSelection.1
@@ -73,6 +77,7 @@ final class AppModel: ObservableObject {
             }
 
             try await refreshTasks()
+            refreshWorkflowDiagnostics()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -108,6 +113,7 @@ final class AppModel: ObservableObject {
         selectedTaskID = nil
         do {
             try await refreshTasks()
+            refreshWorkflowDiagnostics()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -141,6 +147,7 @@ final class AppModel: ObservableObject {
             selectedProjectID = project.id
             selectedTaskID = nil
             try await refreshTasks()
+            refreshWorkflowDiagnostics()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -154,6 +161,7 @@ final class AppModel: ObservableObject {
             projects = try await store.listProjects()
             selectedProjectID = updated.id
             try await refreshTasks()
+            refreshWorkflowDiagnostics()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -277,6 +285,15 @@ final class AppModel: ObservableObject {
             return []
         }
         return try await store.listEvents(taskID: selectedTaskID, limit: 50)
+    }
+
+    private func refreshWorkflowDiagnostics() {
+        guard let selectedProject else {
+            workflowDiagnostics = []
+            return
+        }
+
+        workflowDiagnostics = workflowLoader.validate(project: selectedProject)
     }
 
     private func createInitialProject() async throws {

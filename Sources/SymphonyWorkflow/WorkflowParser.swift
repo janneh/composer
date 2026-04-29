@@ -218,7 +218,7 @@ public enum WorkflowParser {
     }
 }
 
-public enum WorkflowParserError: Error, Equatable, CustomStringConvertible {
+public enum WorkflowParserError: Error, Equatable, CustomStringConvertible, LocalizedError {
     case unclosedFrontMatter(fileURL: URL)
     case invalidFrontMatterLine(fileURL: URL, line: Int, reason: String)
 
@@ -229,6 +229,10 @@ public enum WorkflowParserError: Error, Equatable, CustomStringConvertible {
         case let .invalidFrontMatterLine(fileURL, line, reason):
             return "Invalid workflow front matter in \(fileURL.path) on line \(line): \(reason)"
         }
+    }
+
+    public var errorDescription: String? {
+        description
     }
 }
 

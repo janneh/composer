@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import SymphonyCore
+import SymphonyInterfaces
 import SymphonyRuntime
 
 struct RootView: View {
@@ -428,19 +429,74 @@ private struct BoardView: View {
             if model.selectedProject == nil {
                 ContentUnavailableView("No Project Selected", systemImage: "folder")
             } else {
-                ScrollView(.horizontal) {
-                    HStack(alignment: .top, spacing: 12) {
-                        ForEach(WorkState.boardStates) { state in
-                            BoardColumn(state: state, tasks: model.tasks(in: state))
-                                .frame(width: 280)
-                        }
+                VStack(spacing: 0) {
+                    if !model.workflowDiagnostics.isEmpty {
+                        WorkflowDiagnosticsBanner(diagnostics: model.workflowDiagnostics)
                     }
-                    .padding(16)
+
+                    ScrollView(.horizontal) {
+                        HStack(alignment: .top, spacing: 12) {
+                            ForEach(WorkState.boardStates) { state in
+                                BoardColumn(state: state, tasks: model.tasks(in: state))
+                                    .frame(width: 280)
+                            }
+                        }
+                        .padding(16)
+                    }
                 }
             }
         }
         .background(Color(nsColor: .windowBackgroundColor))
         .navigationTitle(model.selectedProject?.name ?? "Board")
+    }
+}
+
+private struct WorkflowDiagnosticsBanner: View {
+    var diagnostics: [WorkflowDiagnostic]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(diagnostics.enumerated()), id: \.offset) { _, diagnostic in
+                Label {
+                    Text(diagnostic.message)
+                        .fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: iconName(for: diagnostic.severity))
+                }
+                .font(.callout)
+                .foregroundStyle(color(for: diagnostic.severity))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(backgroundColor.opacity(0.12))
+    }
+
+    private var backgroundColor: Color {
+        if diagnostics.contains(where: { $0.severity == .error }) {
+            return .red
+        }
+        if diagnostics.contains(where: { $0.severity == .warning }) {
+            return .orange
+        }
+        return .blue
+    }
+
+    private func iconName(for severity: WorkflowDiagnostic.Severity) -> String {
+        switch severity {
+        case .info: "info.circle"
+        case .warning: "exclamationmark.triangle"
+        case .error: "xmark.octagon"
+        }
+    }
+
+    private func color(for severity: WorkflowDiagnostic.Severity) -> Color {
+        switch severity {
+        case .info: .blue
+        case .warning: .orange
+        case .error: .red
+        }
     }
 }
 

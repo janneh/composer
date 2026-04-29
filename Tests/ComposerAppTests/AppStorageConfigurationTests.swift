@@ -1,5 +1,6 @@
 import XCTest
 import ComposerStorage
+import SymphonyInterfaces
 @testable import ComposerApp
 
 final class AppStorageConfigurationTests: XCTestCase {
@@ -62,6 +63,58 @@ final class AppStorageConfigurationTests: XCTestCase {
         XCTAssertEqual(model.storeFileURL, fileURL)
         XCTAssertEqual(model.projects.map(\.name), ["Local Project"])
         XCTAssertTrue(FileManager.default.fileExists(atPath: fileURL.path))
+    }
+
+    @MainActor
+    func testAppModelClearsWorkflowDiagnosticsForValidWorkflow() async throws {
+        let storeURL = temporaryDirectory().appendingPathComponent("store.json")
+        let repositoryURL = temporaryDirectory()
+        try FileManager.default.createDirectory(at: repositoryURL, withIntermediateDirectories: true)
+        try "Run the task.\n".write(
+            to: repositoryURL.appendingPathComponent("WORKFLOW.md"),
+            atomically: true,
+            encoding: .utf8
+        )
+        let selection = try StoreFactory.makeStore(
+            configuration: StoreConfiguration(backend: .json, fileURL: storeURL)
+        )
+        let model = AppModel(storeSelection: selection)
+
+        await model.createProject(
+            name: "Composer",
+            repositoryPath: repositoryURL.path,
+            workflowPath: nil,
+            defaultAgent: .init(kind: .codex)
+        )
+
+        XCTAssertEqual(model.workflowDiagnostics, [])
+    }
+
+    @MainActor
+    func testAppModelPublishesWorkflowDiagnosticsForInvalidWorkflow() async throws {
+        let storeURL = temporaryDirectory().appendingPathComponent("store.json")
+        let repositoryURL = temporaryDirectory()
+        try FileManager.default.createDirectory(at: repositoryURL, withIntermediateDirectories: true)
+        try "---\nname: Composer\n".write(
+            to: repositoryURL.appendingPathComponent("WORKFLOW.md"),
+            atomically: true,
+            encoding: .utf8
+        )
+        let selection = try StoreFactory.makeStore(
+            configuration: StoreConfiguration(backend: .json, fileURL: storeURL)
+        )
+        let model = AppModel(storeSelection: selection)
+
+        await model.createProject(
+            name: "Composer",
+            repositoryPath: repositoryURL.path,
+            workflowPath: nil,
+            defaultAgent: .init(kind: .codex)
+        )
+
+        XCTAssertEqual(model.workflowDiagnostics.count, 1)
+        XCTAssertEqual(model.workflowDiagnostics[0].severity, .error)
+        XCTAssertTrue(model.workflowDiagnostics[0].message.contains("Unclosed workflow front matter"))
     }
 
     private func makeDefaults() -> UserDefaults {

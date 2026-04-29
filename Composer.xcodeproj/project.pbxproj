@@ -43,6 +43,12 @@
 		00000000000000000000012E /* SymphonySQLiteStore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000045 /* SymphonySQLiteStore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		00000000000000000000012F /* ComposerStorage.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000046 /* ComposerStorage.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		000000000000000000000130 /* AppStorageConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000000C /* AppStorageConfiguration.swift */; };
+		000000000000000000000131 /* WorkflowLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000000D /* WorkflowLoader.swift */; };
+		000000000000000000000132 /* WorkflowParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000000E /* WorkflowParser.swift */; };
+		000000000000000000000133 /* SymphonyCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000041 /* SymphonyCore.framework */; };
+		000000000000000000000134 /* SymphonyInterfaces.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000042 /* SymphonyInterfaces.framework */; };
+		000000000000000000000135 /* SymphonyWorkflow.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000047 /* SymphonyWorkflow.framework */; };
+		000000000000000000000136 /* SymphonyWorkflow.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000047 /* SymphonyWorkflow.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,6 +67,9 @@
 		00000000000000000000020D /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 000000000000000000000300 /* Project object */; proxyType = 1; remoteGlobalIDString = 000000000000000000000406; remoteInfo = SymphonySQLiteStore; };
 		00000000000000000000020E /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 000000000000000000000300 /* Project object */; proxyType = 1; remoteGlobalIDString = 000000000000000000000406; remoteInfo = SymphonySQLiteStore; };
 		00000000000000000000020F /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 000000000000000000000300 /* Project object */; proxyType = 1; remoteGlobalIDString = 000000000000000000000407; remoteInfo = ComposerStorage; };
+		000000000000000000000230 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 000000000000000000000300 /* Project object */; proxyType = 1; remoteGlobalIDString = 000000000000000000000401; remoteInfo = SymphonyCore; };
+		000000000000000000000231 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 000000000000000000000300 /* Project object */; proxyType = 1; remoteGlobalIDString = 000000000000000000000402; remoteInfo = SymphonyInterfaces; };
+		000000000000000000000232 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 000000000000000000000300 /* Project object */; proxyType = 1; remoteGlobalIDString = 000000000000000000000408; remoteInfo = SymphonyWorkflow; };
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -76,6 +85,7 @@
 				000000000000000000000123 /* SymphonyRuntime.framework in Embed Frameworks */,
 				00000000000000000000012E /* SymphonySQLiteStore.framework in Embed Frameworks */,
 				00000000000000000000012F /* ComposerStorage.framework in Embed Frameworks */,
+				000000000000000000000136 /* SymphonyWorkflow.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -95,6 +105,8 @@
 		00000000000000000000000A /* SQLiteStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteStore.swift; sourceTree = "<group>"; };
 		00000000000000000000000B /* StoreFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreFactory.swift; sourceTree = "<group>"; };
 		00000000000000000000000C /* AppStorageConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStorageConfiguration.swift; sourceTree = "<group>"; };
+		00000000000000000000000D /* WorkflowLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkflowLoader.swift; sourceTree = "<group>"; };
+		00000000000000000000000E /* WorkflowParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkflowParser.swift; sourceTree = "<group>"; };
 		000000000000000000000040 /* Composer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Composer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000000000041 /* SymphonyCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SymphonyCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000000000042 /* SymphonyInterfaces.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SymphonyInterfaces.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -102,6 +114,7 @@
 		000000000000000000000044 /* SymphonyRuntime.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SymphonyRuntime.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000000000045 /* SymphonySQLiteStore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SymphonySQLiteStore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000000000046 /* ComposerStorage.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ComposerStorage.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000000000047 /* SymphonyWorkflow.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SymphonyWorkflow.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,9 +122,10 @@
 		000000000000000000000602 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000110 /* SymphonyCore.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
 		000000000000000000000603 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000111 /* SymphonyCore.framework in Frameworks */, 000000000000000000000113 /* SymphonyInterfaces.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
 		000000000000000000000604 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000112 /* SymphonyCore.framework in Frameworks */, 000000000000000000000114 /* SymphonyInterfaces.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
-		000000000000000000000605 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000115 /* SymphonyInterfaces.framework in Frameworks */, 000000000000000000000116 /* SymphonyCore.framework in Frameworks */, 000000000000000000000118 /* SymphonyLocalStore.framework in Frameworks */, 000000000000000000000119 /* SymphonyRuntime.framework in Frameworks */, 00000000000000000000012C /* ComposerStorage.framework in Frameworks */, 00000000000000000000012D /* SymphonySQLiteStore.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
+		000000000000000000000605 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000115 /* SymphonyInterfaces.framework in Frameworks */, 000000000000000000000116 /* SymphonyCore.framework in Frameworks */, 000000000000000000000118 /* SymphonyLocalStore.framework in Frameworks */, 000000000000000000000119 /* SymphonyRuntime.framework in Frameworks */, 00000000000000000000012C /* ComposerStorage.framework in Frameworks */, 00000000000000000000012D /* SymphonySQLiteStore.framework in Frameworks */, 000000000000000000000135 /* SymphonyWorkflow.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
 		000000000000000000000606 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000126 /* SymphonyCore.framework in Frameworks */, 000000000000000000000127 /* SymphonyInterfaces.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
 		000000000000000000000607 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000128 /* SymphonyCore.framework in Frameworks */, 000000000000000000000129 /* SymphonyInterfaces.framework in Frameworks */, 00000000000000000000012A /* SymphonyLocalStore.framework in Frameworks */, 00000000000000000000012B /* SymphonySQLiteStore.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
+		000000000000000000000608 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000133 /* SymphonyCore.framework in Frameworks */, 000000000000000000000134 /* SymphonyInterfaces.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -133,6 +147,7 @@
 				000000000000000000000708 /* SymphonyRuntime */,
 				000000000000000000000709 /* SymphonySQLiteStore */,
 				00000000000000000000070A /* ComposerStorage */,
+				00000000000000000000070B /* SymphonyWorkflow */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -147,6 +162,7 @@
 				000000000000000000000044 /* SymphonyRuntime.framework */,
 				000000000000000000000045 /* SymphonySQLiteStore.framework */,
 				000000000000000000000046 /* ComposerStorage.framework */,
+				000000000000000000000047 /* SymphonyWorkflow.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -210,6 +226,15 @@
 				00000000000000000000000B /* StoreFactory.swift */,
 			);
 			path = ComposerStorage;
+			sourceTree = "<group>";
+		};
+		00000000000000000000070B /* SymphonyWorkflow */ = {
+			isa = PBXGroup;
+			children = (
+				00000000000000000000000D /* WorkflowLoader.swift */,
+				00000000000000000000000E /* WorkflowParser.swift */,
+			);
+			path = SymphonyWorkflow;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -281,12 +306,23 @@
 			productReference = 000000000000000000000046 /* ComposerStorage.framework */;
 			productType = "com.apple.product-type.framework";
 		};
+		000000000000000000000408 /* SymphonyWorkflow */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000000001008 /* Build configuration list for PBXNativeTarget "SymphonyWorkflow" */;
+			buildPhases = (000000000000000000000808 /* Sources */, 000000000000000000000608 /* Frameworks */, );
+			buildRules = ();
+			dependencies = (000000000000000000000228 /* PBXTargetDependency */, 000000000000000000000229 /* PBXTargetDependency */, );
+			name = SymphonyWorkflow;
+			productName = SymphonyWorkflow;
+			productReference = 000000000000000000000047 /* SymphonyWorkflow.framework */;
+			productType = "com.apple.product-type.framework";
+		};
 		000000000000000000000405 /* Composer */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 000000000000000000001005 /* Build configuration list for PBXNativeTarget "Composer" */;
 			buildPhases = (000000000000000000000805 /* Sources */, 000000000000000000000605 /* Frameworks */, 000000000000000000000501 /* Embed Frameworks */, );
 			buildRules = ();
-			dependencies = (000000000000000000000214 /* PBXTargetDependency */, 000000000000000000000215 /* PBXTargetDependency */, 000000000000000000000218 /* PBXTargetDependency */, 000000000000000000000219 /* PBXTargetDependency */, 000000000000000000000226 /* PBXTargetDependency */, 000000000000000000000227 /* PBXTargetDependency */, );
+			dependencies = (000000000000000000000214 /* PBXTargetDependency */, 000000000000000000000215 /* PBXTargetDependency */, 000000000000000000000218 /* PBXTargetDependency */, 000000000000000000000219 /* PBXTargetDependency */, 000000000000000000000226 /* PBXTargetDependency */, 000000000000000000000227 /* PBXTargetDependency */, 00000000000000000000022A /* PBXTargetDependency */, );
 			name = Composer;
 			productName = Composer;
 			productReference = 000000000000000000000040 /* Composer.app */;
@@ -309,6 +345,7 @@
 					000000000000000000000405 = {CreatedOnToolsVersion = 16.0; };
 					000000000000000000000406 = {CreatedOnToolsVersion = 16.0; };
 					000000000000000000000407 = {CreatedOnToolsVersion = 16.0; };
+					000000000000000000000408 = {CreatedOnToolsVersion = 16.0; };
 				};
 			};
 			buildConfigurationList = 000000000000000000001000 /* Build configuration list for PBXProject "Composer" */;
@@ -328,6 +365,7 @@
 				000000000000000000000404 /* SymphonyRuntime */,
 				000000000000000000000406 /* SymphonySQLiteStore */,
 				000000000000000000000407 /* ComposerStorage */,
+				000000000000000000000408 /* SymphonyWorkflow */,
 			);
 		};
 /* End PBXProject section */
@@ -340,6 +378,7 @@
 		000000000000000000000805 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000106 /* ComposerApp.swift in Sources */, 000000000000000000000107 /* AppModel.swift in Sources */, 000000000000000000000130 /* AppStorageConfiguration.swift in Sources */, 000000000000000000000108 /* RootView.swift in Sources */, 000000000000000000000109 /* StoreFileWatcher.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
 		000000000000000000000806 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000124 /* SQLiteStore.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
 		000000000000000000000807 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000125 /* StoreFactory.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+		000000000000000000000808 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000131 /* WorkflowLoader.swift in Sources */, 000000000000000000000132 /* WorkflowParser.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -360,6 +399,9 @@
 		000000000000000000000225 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 000000000000000000000406 /* SymphonySQLiteStore */; targetProxy = 00000000000000000000020D /* PBXContainerItemProxy */; };
 		000000000000000000000226 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 000000000000000000000406 /* SymphonySQLiteStore */; targetProxy = 00000000000000000000020E /* PBXContainerItemProxy */; };
 		000000000000000000000227 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 000000000000000000000407 /* ComposerStorage */; targetProxy = 00000000000000000000020F /* PBXContainerItemProxy */; };
+		000000000000000000000228 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 000000000000000000000401 /* SymphonyCore */; targetProxy = 000000000000000000000230 /* PBXContainerItemProxy */; };
+		000000000000000000000229 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 000000000000000000000402 /* SymphonyInterfaces */; targetProxy = 000000000000000000000231 /* PBXContainerItemProxy */; };
+		00000000000000000000022A /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 000000000000000000000408 /* SymphonyWorkflow */; targetProxy = 000000000000000000000232 /* PBXContainerItemProxy */; };
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -377,6 +419,8 @@
 		000000000000000000001212 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; DEFINES_MODULE = YES; GENERATE_INFOPLIST_FILE = YES; LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)"; MACOSX_DEPLOYMENT_TARGET = 14.0; OTHER_LDFLAGS = "-lsqlite3"; PRODUCT_BUNDLE_IDENTIFIER = dev.janneh.composer.SymphonySQLiteStore; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; }; name = Release; };
 		000000000000000000001213 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; DEFINES_MODULE = YES; GENERATE_INFOPLIST_FILE = YES; LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)"; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = dev.janneh.composer.ComposerStorage; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; }; name = Debug; };
 		000000000000000000001214 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; DEFINES_MODULE = YES; GENERATE_INFOPLIST_FILE = YES; LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)"; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = dev.janneh.composer.ComposerStorage; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; }; name = Release; };
+		000000000000000000001215 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; DEFINES_MODULE = YES; GENERATE_INFOPLIST_FILE = YES; LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)"; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = dev.janneh.composer.SymphonyWorkflow; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; }; name = Debug; };
+		000000000000000000001216 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; DEFINES_MODULE = YES; GENERATE_INFOPLIST_FILE = YES; LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)"; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = dev.janneh.composer.SymphonyWorkflow; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; }; name = Release; };
 		000000000000000000001209 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = ""; CODE_SIGN_STYLE = Automatic; COMBINE_HIDPI_IMAGES = YES; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = Composer; INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools"; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks", ); MACOSX_DEPLOYMENT_TARGET = 14.0; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = dev.janneh.composer; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 5.0; }; name = Debug; };
 		000000000000000000001210 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = ""; CODE_SIGN_STYLE = Automatic; COMBINE_HIDPI_IMAGES = YES; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = Composer; INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools"; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks", ); MACOSX_DEPLOYMENT_TARGET = 14.0; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = dev.janneh.composer; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 5.0; }; name = Release; };
 /* End XCBuildConfiguration section */
@@ -390,6 +434,7 @@
 		000000000000000000001005 /* Build configuration list for PBXNativeTarget "Composer" */ = {isa = XCConfigurationList; buildConfigurations = (000000000000000000001209 /* Debug */, 000000000000000000001210 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
 		000000000000000000001006 /* Build configuration list for PBXNativeTarget "SymphonySQLiteStore" */ = {isa = XCConfigurationList; buildConfigurations = (000000000000000000001211 /* Debug */, 000000000000000000001212 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
 		000000000000000000001007 /* Build configuration list for PBXNativeTarget "ComposerStorage" */ = {isa = XCConfigurationList; buildConfigurations = (000000000000000000001213 /* Debug */, 000000000000000000001214 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+		000000000000000000001008 /* Build configuration list for PBXNativeTarget "SymphonyWorkflow" */ = {isa = XCConfigurationList; buildConfigurations = (000000000000000000001215 /* Debug */, 000000000000000000001216 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
 /* End XCConfigurationList section */
 	};
 	rootObject = 000000000000000000000300 /* Project object */;
