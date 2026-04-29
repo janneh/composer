@@ -1,0 +1,303 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		000000000000000000000101 /* DomainModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000001 /* DomainModels.swift */; };
+		000000000000000000000102 /* Identifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000002 /* Identifiers.swift */; };
+		000000000000000000000103 /* Ports.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000003 /* Ports.swift */; };
+		000000000000000000000104 /* LocalJSONStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000004 /* LocalJSONStore.swift */; };
+		000000000000000000000105 /* Orchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000005 /* Orchestrator.swift */; };
+		000000000000000000000106 /* ComposerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000006 /* ComposerApp.swift */; };
+		000000000000000000000107 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000007 /* AppModel.swift */; };
+		000000000000000000000108 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000008 /* RootView.swift */; };
+		000000000000000000000109 /* StoreFileWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000009 /* StoreFileWatcher.swift */; };
+		000000000000000000000110 /* SymphonyCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000041 /* SymphonyCore.framework */; };
+		000000000000000000000111 /* SymphonyCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000041 /* SymphonyCore.framework */; };
+		000000000000000000000112 /* SymphonyCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000041 /* SymphonyCore.framework */; };
+		000000000000000000000113 /* SymphonyInterfaces.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000042 /* SymphonyInterfaces.framework */; };
+		000000000000000000000114 /* SymphonyInterfaces.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000042 /* SymphonyInterfaces.framework */; };
+		000000000000000000000115 /* SymphonyInterfaces.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000042 /* SymphonyInterfaces.framework */; };
+		000000000000000000000116 /* SymphonyCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000041 /* SymphonyCore.framework */; };
+		000000000000000000000117 /* SymphonyInterfaces.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000042 /* SymphonyInterfaces.framework */; };
+		000000000000000000000118 /* SymphonyLocalStore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000043 /* SymphonyLocalStore.framework */; };
+		000000000000000000000119 /* SymphonyRuntime.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000044 /* SymphonyRuntime.framework */; };
+		000000000000000000000120 /* SymphonyCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000041 /* SymphonyCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		000000000000000000000121 /* SymphonyInterfaces.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000042 /* SymphonyInterfaces.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		000000000000000000000122 /* SymphonyLocalStore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000043 /* SymphonyLocalStore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		000000000000000000000123 /* SymphonyRuntime.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000044 /* SymphonyRuntime.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		000000000000000000000201 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 000000000000000000000300 /* Project object */; proxyType = 1; remoteGlobalIDString = 000000000000000000000401; remoteInfo = SymphonyCore; };
+		000000000000000000000202 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 000000000000000000000300 /* Project object */; proxyType = 1; remoteGlobalIDString = 000000000000000000000402; remoteInfo = SymphonyInterfaces; };
+		000000000000000000000203 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 000000000000000000000300 /* Project object */; proxyType = 1; remoteGlobalIDString = 000000000000000000000401; remoteInfo = SymphonyCore; };
+		000000000000000000000204 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 000000000000000000000300 /* Project object */; proxyType = 1; remoteGlobalIDString = 000000000000000000000403; remoteInfo = SymphonyLocalStore; };
+		000000000000000000000205 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 000000000000000000000300 /* Project object */; proxyType = 1; remoteGlobalIDString = 000000000000000000000404; remoteInfo = SymphonyRuntime; };
+		000000000000000000000206 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 000000000000000000000300 /* Project object */; proxyType = 1; remoteGlobalIDString = 000000000000000000000401; remoteInfo = SymphonyCore; };
+		000000000000000000000207 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 000000000000000000000300 /* Project object */; proxyType = 1; remoteGlobalIDString = 000000000000000000000402; remoteInfo = SymphonyInterfaces; };
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		000000000000000000000501 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				000000000000000000000120 /* SymphonyCore.framework in Embed Frameworks */,
+				000000000000000000000121 /* SymphonyInterfaces.framework in Embed Frameworks */,
+				000000000000000000000122 /* SymphonyLocalStore.framework in Embed Frameworks */,
+				000000000000000000000123 /* SymphonyRuntime.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		000000000000000000000001 /* DomainModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainModels.swift; sourceTree = "<group>"; };
+		000000000000000000000002 /* Identifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Identifiers.swift; sourceTree = "<group>"; };
+		000000000000000000000003 /* Ports.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ports.swift; sourceTree = "<group>"; };
+		000000000000000000000004 /* LocalJSONStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalJSONStore.swift; sourceTree = "<group>"; };
+		000000000000000000000005 /* Orchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Orchestrator.swift; sourceTree = "<group>"; };
+		000000000000000000000006 /* ComposerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComposerApp.swift; sourceTree = "<group>"; };
+		000000000000000000000007 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		000000000000000000000008 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		000000000000000000000009 /* StoreFileWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreFileWatcher.swift; sourceTree = "<group>"; };
+		000000000000000000000040 /* Composer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Composer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000000000041 /* SymphonyCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SymphonyCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000000000042 /* SymphonyInterfaces.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SymphonyInterfaces.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000000000043 /* SymphonyLocalStore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SymphonyLocalStore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000000000044 /* SymphonyRuntime.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SymphonyRuntime.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		000000000000000000000601 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		000000000000000000000602 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000110 /* SymphonyCore.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
+		000000000000000000000603 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000111 /* SymphonyCore.framework in Frameworks */, 000000000000000000000113 /* SymphonyInterfaces.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
+		000000000000000000000604 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000112 /* SymphonyCore.framework in Frameworks */, 000000000000000000000114 /* SymphonyInterfaces.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
+		000000000000000000000605 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000115 /* SymphonyInterfaces.framework in Frameworks */, 000000000000000000000116 /* SymphonyCore.framework in Frameworks */, 000000000000000000000118 /* SymphonyLocalStore.framework in Frameworks */, 000000000000000000000119 /* SymphonyRuntime.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		000000000000000000000701 = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000702 /* Sources */,
+				000000000000000000000703 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		000000000000000000000702 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000704 /* ComposerApp */,
+				000000000000000000000705 /* SymphonyCore */,
+				000000000000000000000706 /* SymphonyInterfaces */,
+				000000000000000000000707 /* SymphonyLocalStore */,
+				000000000000000000000708 /* SymphonyRuntime */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		000000000000000000000703 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000040 /* Composer.app */,
+				000000000000000000000041 /* SymphonyCore.framework */,
+				000000000000000000000042 /* SymphonyInterfaces.framework */,
+				000000000000000000000043 /* SymphonyLocalStore.framework */,
+				000000000000000000000044 /* SymphonyRuntime.framework */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		000000000000000000000704 /* ComposerApp */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000006 /* ComposerApp.swift */,
+				000000000000000000000007 /* AppModel.swift */,
+				000000000000000000000008 /* RootView.swift */,
+				000000000000000000000009 /* StoreFileWatcher.swift */,
+			);
+			path = ComposerApp;
+			sourceTree = "<group>";
+		};
+		000000000000000000000705 /* SymphonyCore */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000001 /* DomainModels.swift */,
+				000000000000000000000002 /* Identifiers.swift */,
+			);
+			path = SymphonyCore;
+			sourceTree = "<group>";
+		};
+		000000000000000000000706 /* SymphonyInterfaces */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000003 /* Ports.swift */,
+			);
+			path = SymphonyInterfaces;
+			sourceTree = "<group>";
+		};
+		000000000000000000000707 /* SymphonyLocalStore */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000004 /* LocalJSONStore.swift */,
+			);
+			path = SymphonyLocalStore;
+			sourceTree = "<group>";
+		};
+		000000000000000000000708 /* SymphonyRuntime */ = {
+			isa = PBXGroup;
+			children = (
+				000000000000000000000005 /* Orchestrator.swift */,
+			);
+			path = SymphonyRuntime;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		000000000000000000000401 /* SymphonyCore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000000001001 /* Build configuration list for PBXNativeTarget "SymphonyCore" */;
+			buildPhases = (000000000000000000000801 /* Sources */, 000000000000000000000601 /* Frameworks */, );
+			buildRules = ();
+			dependencies = ();
+			name = SymphonyCore;
+			productName = SymphonyCore;
+			productReference = 000000000000000000000041 /* SymphonyCore.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		000000000000000000000402 /* SymphonyInterfaces */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000000001002 /* Build configuration list for PBXNativeTarget "SymphonyInterfaces" */;
+			buildPhases = (000000000000000000000802 /* Sources */, 000000000000000000000602 /* Frameworks */, );
+			buildRules = ();
+			dependencies = (000000000000000000000211 /* PBXTargetDependency */, );
+			name = SymphonyInterfaces;
+			productName = SymphonyInterfaces;
+			productReference = 000000000000000000000042 /* SymphonyInterfaces.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		000000000000000000000403 /* SymphonyLocalStore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000000001003 /* Build configuration list for PBXNativeTarget "SymphonyLocalStore" */;
+			buildPhases = (000000000000000000000803 /* Sources */, 000000000000000000000603 /* Frameworks */, );
+			buildRules = ();
+			dependencies = (000000000000000000000212 /* PBXTargetDependency */, 000000000000000000000213 /* PBXTargetDependency */, );
+			name = SymphonyLocalStore;
+			productName = SymphonyLocalStore;
+			productReference = 000000000000000000000043 /* SymphonyLocalStore.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		000000000000000000000404 /* SymphonyRuntime */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000000001004 /* Build configuration list for PBXNativeTarget "SymphonyRuntime" */;
+			buildPhases = (000000000000000000000804 /* Sources */, 000000000000000000000604 /* Frameworks */, );
+			buildRules = ();
+			dependencies = (000000000000000000000216 /* PBXTargetDependency */, 000000000000000000000217 /* PBXTargetDependency */, );
+			name = SymphonyRuntime;
+			productName = SymphonyRuntime;
+			productReference = 000000000000000000000044 /* SymphonyRuntime.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		000000000000000000000405 /* Composer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 000000000000000000001005 /* Build configuration list for PBXNativeTarget "Composer" */;
+			buildPhases = (000000000000000000000805 /* Sources */, 000000000000000000000605 /* Frameworks */, 000000000000000000000501 /* Embed Frameworks */, );
+			buildRules = ();
+			dependencies = (000000000000000000000214 /* PBXTargetDependency */, 000000000000000000000215 /* PBXTargetDependency */, 000000000000000000000218 /* PBXTargetDependency */, 000000000000000000000219 /* PBXTargetDependency */, );
+			name = Composer;
+			productName = Composer;
+			productReference = 000000000000000000000040 /* Composer.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		000000000000000000000300 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					000000000000000000000401 = {CreatedOnToolsVersion = 16.0; };
+					000000000000000000000402 = {CreatedOnToolsVersion = 16.0; };
+					000000000000000000000403 = {CreatedOnToolsVersion = 16.0; };
+					000000000000000000000404 = {CreatedOnToolsVersion = 16.0; };
+					000000000000000000000405 = {CreatedOnToolsVersion = 16.0; };
+				};
+			};
+			buildConfigurationList = 000000000000000000001000 /* Build configuration list for PBXProject "Composer" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base, );
+			mainGroup = 000000000000000000000701;
+			productRefGroup = 000000000000000000000703 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				000000000000000000000405 /* Composer */,
+				000000000000000000000401 /* SymphonyCore */,
+				000000000000000000000402 /* SymphonyInterfaces */,
+				000000000000000000000403 /* SymphonyLocalStore */,
+				000000000000000000000404 /* SymphonyRuntime */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		000000000000000000000801 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000101 /* DomainModels.swift in Sources */, 000000000000000000000102 /* Identifiers.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+		000000000000000000000802 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000103 /* Ports.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+		000000000000000000000803 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000104 /* LocalJSONStore.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+		000000000000000000000804 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000105 /* Orchestrator.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+		000000000000000000000805 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000106 /* ComposerApp.swift in Sources */, 000000000000000000000107 /* AppModel.swift in Sources */, 000000000000000000000108 /* RootView.swift in Sources */, 000000000000000000000109 /* StoreFileWatcher.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		000000000000000000000211 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 000000000000000000000401 /* SymphonyCore */; targetProxy = 000000000000000000000201 /* PBXContainerItemProxy */; };
+		000000000000000000000212 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 000000000000000000000401 /* SymphonyCore */; targetProxy = 000000000000000000000203 /* PBXContainerItemProxy */; };
+		000000000000000000000213 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 000000000000000000000402 /* SymphonyInterfaces */; targetProxy = 000000000000000000000202 /* PBXContainerItemProxy */; };
+		000000000000000000000214 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 000000000000000000000401 /* SymphonyCore */; targetProxy = 000000000000000000000206 /* PBXContainerItemProxy */; };
+		000000000000000000000215 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 000000000000000000000402 /* SymphonyInterfaces */; targetProxy = 000000000000000000000207 /* PBXContainerItemProxy */; };
+		000000000000000000000216 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 000000000000000000000401 /* SymphonyCore */; targetProxy = 000000000000000000000201 /* PBXContainerItemProxy */; };
+		000000000000000000000217 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 000000000000000000000402 /* SymphonyInterfaces */; targetProxy = 000000000000000000000202 /* PBXContainerItemProxy */; };
+		000000000000000000000218 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 000000000000000000000403 /* SymphonyLocalStore */; targetProxy = 000000000000000000000204 /* PBXContainerItemProxy */; };
+		000000000000000000000219 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 000000000000000000000404 /* SymphonyRuntime */; targetProxy = 000000000000000000000205 /* PBXContainerItemProxy */; };
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		000000000000000000001101 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ANALYZER_NONNULL = YES; CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE; CLANG_CXX_LANGUAGE_STANDARD = "gnu++20"; CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; CLANG_ENABLE_OBJC_WEAK = YES; CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES; CLANG_WARN_BOOL_CONVERSION = YES; CLANG_WARN_COMMA = YES; CLANG_WARN_CONSTANT_CONVERSION = YES; CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES; CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR; CLANG_WARN_DOCUMENTATION_COMMENTS = YES; CLANG_WARN_EMPTY_BODY = YES; CLANG_WARN_ENUM_CONVERSION = YES; CLANG_WARN_INFINITE_RECURSION = YES; CLANG_WARN_INT_CONVERSION = YES; CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES; CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES; CLANG_WARN_OBJC_LITERAL_CONVERSION = YES; CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR; CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES; CLANG_WARN_RANGE_LOOP_ANALYSIS = YES; CLANG_WARN_STRICT_PROTOTYPES = YES; CLANG_WARN_SUSPICIOUS_MOVE = YES; CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE; CLANG_WARN_UNREACHABLE_CODE = YES; CLANG_WARN__DUPLICATE_METHOD_MATCH = YES; COPY_PHASE_STRIP = NO; DEBUG_INFORMATION_FORMAT = dwarf; ENABLE_STRICT_OBJC_MSGSEND = YES; ENABLE_TESTABILITY = YES; ENABLE_USER_SCRIPT_SANDBOXING = YES; GCC_C_LANGUAGE_STANDARD = gnu17; GCC_DYNAMIC_NO_PIC = NO; GCC_NO_COMMON_BLOCKS = YES; GCC_OPTIMIZATION_LEVEL = 0; GCC_PREPROCESSOR_DEFINITIONS = ("DEBUG=1", "$(inherited)", ); GCC_WARN_64_TO_32_BIT_CONVERSION = YES; GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR; GCC_WARN_UNDECLARED_SELECTOR = YES; GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE; GCC_WARN_UNUSED_FUNCTION = YES; GCC_WARN_UNUSED_VARIABLE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE; MTL_FAST_MATH = YES; ONLY_ACTIVE_ARCH = YES; SDKROOT = macosx; SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
+		000000000000000000001102 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ANALYZER_NONNULL = YES; CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE; CLANG_CXX_LANGUAGE_STANDARD = "gnu++20"; CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; CLANG_ENABLE_OBJC_WEAK = YES; CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES; CLANG_WARN_BOOL_CONVERSION = YES; CLANG_WARN_COMMA = YES; CLANG_WARN_CONSTANT_CONVERSION = YES; CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES; CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR; CLANG_WARN_DOCUMENTATION_COMMENTS = YES; CLANG_WARN_EMPTY_BODY = YES; CLANG_WARN_ENUM_CONVERSION = YES; CLANG_WARN_INFINITE_RECURSION = YES; CLANG_WARN_INT_CONVERSION = YES; CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES; CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES; CLANG_WARN_OBJC_LITERAL_CONVERSION = YES; CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR; CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES; CLANG_WARN_RANGE_LOOP_ANALYSIS = YES; CLANG_WARN_STRICT_PROTOTYPES = YES; CLANG_WARN_SUSPICIOUS_MOVE = YES; CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE; CLANG_WARN_UNREACHABLE_CODE = YES; CLANG_WARN__DUPLICATE_METHOD_MATCH = YES; COPY_PHASE_STRIP = NO; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; ENABLE_NS_ASSERTIONS = NO; ENABLE_STRICT_OBJC_MSGSEND = YES; ENABLE_USER_SCRIPT_SANDBOXING = YES; GCC_C_LANGUAGE_STANDARD = gnu17; GCC_NO_COMMON_BLOCKS = YES; GCC_WARN_64_TO_32_BIT_CONVERSION = YES; GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR; GCC_WARN_UNDECLARED_SELECTOR = YES; GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE; GCC_WARN_UNUSED_FUNCTION = YES; GCC_WARN_UNUSED_VARIABLE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; MTL_ENABLE_DEBUG_INFO = NO; MTL_FAST_MATH = YES; SDKROOT = macosx; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_OPTIMIZATION_LEVEL = "-O"; }; name = Release; };
+		000000000000000000001201 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; DEFINES_MODULE = YES; GENERATE_INFOPLIST_FILE = YES; LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)"; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = dev.janneh.composer.SymphonyCore; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; }; name = Debug; };
+		000000000000000000001202 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; DEFINES_MODULE = YES; GENERATE_INFOPLIST_FILE = YES; LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)"; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = dev.janneh.composer.SymphonyCore; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; }; name = Release; };
+		000000000000000000001203 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; DEFINES_MODULE = YES; GENERATE_INFOPLIST_FILE = YES; LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)"; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = dev.janneh.composer.SymphonyInterfaces; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; }; name = Debug; };
+		000000000000000000001204 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; DEFINES_MODULE = YES; GENERATE_INFOPLIST_FILE = YES; LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)"; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = dev.janneh.composer.SymphonyInterfaces; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; }; name = Release; };
+		000000000000000000001205 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; DEFINES_MODULE = YES; GENERATE_INFOPLIST_FILE = YES; LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)"; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = dev.janneh.composer.SymphonyLocalStore; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; }; name = Debug; };
+		000000000000000000001206 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; DEFINES_MODULE = YES; GENERATE_INFOPLIST_FILE = YES; LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)"; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = dev.janneh.composer.SymphonyLocalStore; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; }; name = Release; };
+		000000000000000000001207 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; DEFINES_MODULE = YES; GENERATE_INFOPLIST_FILE = YES; LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)"; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = dev.janneh.composer.SymphonyRuntime; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; }; name = Debug; };
+		000000000000000000001208 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; DEFINES_MODULE = YES; GENERATE_INFOPLIST_FILE = YES; LD_DYLIB_INSTALL_NAME = "@rpath/$(EXECUTABLE_PATH)"; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = dev.janneh.composer.SymphonyRuntime; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SWIFT_VERSION = 5.0; }; name = Release; };
+		000000000000000000001209 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = ""; CODE_SIGN_STYLE = Automatic; COMBINE_HIDPI_IMAGES = YES; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = Composer; INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools"; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks", ); MACOSX_DEPLOYMENT_TARGET = 14.0; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = dev.janneh.composer; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 5.0; }; name = Debug; };
+		000000000000000000001210 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = ""; CODE_SIGN_STYLE = Automatic; COMBINE_HIDPI_IMAGES = YES; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = Composer; INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools"; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks", ); MACOSX_DEPLOYMENT_TARGET = 14.0; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = dev.janneh.composer; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 5.0; }; name = Release; };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		000000000000000000001000 /* Build configuration list for PBXProject "Composer" */ = {isa = XCConfigurationList; buildConfigurations = (000000000000000000001101 /* Debug */, 000000000000000000001102 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+		000000000000000000001001 /* Build configuration list for PBXNativeTarget "SymphonyCore" */ = {isa = XCConfigurationList; buildConfigurations = (000000000000000000001201 /* Debug */, 000000000000000000001202 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+		000000000000000000001002 /* Build configuration list for PBXNativeTarget "SymphonyInterfaces" */ = {isa = XCConfigurationList; buildConfigurations = (000000000000000000001203 /* Debug */, 000000000000000000001204 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+		000000000000000000001003 /* Build configuration list for PBXNativeTarget "SymphonyLocalStore" */ = {isa = XCConfigurationList; buildConfigurations = (000000000000000000001205 /* Debug */, 000000000000000000001206 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+		000000000000000000001004 /* Build configuration list for PBXNativeTarget "SymphonyRuntime" */ = {isa = XCConfigurationList; buildConfigurations = (000000000000000000001207 /* Debug */, 000000000000000000001208 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+		000000000000000000001005 /* Build configuration list for PBXNativeTarget "Composer" */ = {isa = XCConfigurationList; buildConfigurations = (000000000000000000001209 /* Debug */, 000000000000000000001210 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+/* End XCConfigurationList section */
+	};
+	rootObject = 000000000000000000000300 /* Project object */;
+}

@@ -27,6 +27,10 @@ The repository is licensed under Apache-2.0.
 - `ComposerCLI`: `composerctl` command-line surface for inserting projects/tasks into the same local store as the app.
 - `Tests/SymphonyCoreTests`: focused domain tests.
 
+The repository also contains `Composer.xcodeproj`, which builds and launches the macOS `.app` bundle. Keep SwiftPM as the package/module boundary, and keep the Xcode project in sync when app-facing source files or app-linked framework targets change.
+
+Xcode framework targets used by the app must keep `LD_DYLIB_INSTALL_NAME` set to `@rpath/$(EXECUTABLE_PATH)` so the app loads embedded Composer frameworks from `Composer.app/Contents/Frameworks` instead of `/Library/Frameworks`.
+
 ## Planned Packages
 
 - `SymphonySQLiteStore`: durable local storage with migrations and event log.
@@ -45,10 +49,14 @@ Common commands:
 ```sh
 make test
 make build
+make xcode-build
 make app
+make open-project
 make cli
 make smoke-cli
 ```
+
+`make app` builds the checked-in Xcode project and opens the resulting `Composer.app`. Use `make open-project` when working directly in Xcode.
 
 `make cli` installs `composerctl` to `~/.local/bin`. After that, use the CLI directly:
 

@@ -22,10 +22,14 @@ Use the Makefile as the main developer entry point:
 | Command | Description |
 | --- | --- |
 | `make test` | Build and run tests |
-| `make build` | Build all products |
-| `make app` | Run the macOS app |
+| `make build` | Build the CLI and macOS app |
+| `make xcode-build` | Build `Composer.app` with Xcode |
+| `make app` | Build and open `Composer.app` |
+| `make open-project` | Open `Composer.xcodeproj` in Xcode |
 | `make cli` | Install `composerctl` to `~/.local/bin` |
 | `make smoke-cli` | Run a CLI smoke test against a temporary store |
+
+The SwiftUI app is launched through the checked-in Xcode project so macOS receives a normal `.app` bundle. SwiftPM remains the package boundary for shared libraries, tests, and the CLI.
 
 After installing the CLI:
 
