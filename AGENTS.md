@@ -24,6 +24,7 @@ The repository is licensed under Apache-2.0.
 - `SymphonyLocalStore`: local JSON store for initial development and tests.
 - `SymphonySQLiteStore`: durable SQLite store conforming to the same store protocols. It currently preserves full domain objects as JSON payloads plus indexed columns for queries.
 - `ComposerStorage`: edge-level storage factory for choosing JSON or SQLite while returning protocol-shaped stores.
+- `SymphonyWorkflow`: `WORKFLOW.md` discovery/loading, with parsing and prompt rendering planned next.
 - `SymphonyRuntime`: orchestration state-machine skeleton.
 - `ComposerApp`: SwiftUI macOS UI.
 - `ComposerCLI`: `composerctl` command-line surface for inserting projects/tasks into the same local store as the app.
@@ -36,7 +37,6 @@ Xcode framework targets used by the app must keep `LD_DYLIB_INSTALL_NAME` set to
 
 ## Planned Packages
 
-- `SymphonyWorkflow`: `WORKFLOW.md` discovery, validation, and prompt rendering.
 - `SymphonyWorkspace`: workspace/worktree lifecycle.
 - `SymphonyCodexAgent`: Codex runner.
 - `SymphonyClaudeAgent`: Claude runner.
@@ -84,5 +84,6 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 - `composerctl` defaults to JSON storage and can use SQLite with `--store-backend sqlite`; `ComposerApp` uses `ComposerStorage` and can select JSON or SQLite with `COMPOSER_STORE_BACKEND`, `COMPOSER_STORE_PATH`, or the `ComposerStoreBackend` / `ComposerStorePath` app defaults.
 - CLI mutations must append runtime events just like UI mutations.
 - `ComposerApp` consumes an `AsyncThrowingStream` of JSON store file changes so `composerctl` JSON updates are reflected without restarting the app. SQLite app refresh is currently explicit/in-process.
+- `SymphonyWorkflow.WorkflowLoader` resolves explicit workflow paths first, otherwise uses `WORKFLOW.md` under the project repository path.
 - User-visible edits should append runtime events where useful so later sync has a clear mutation history.
 - Keep SwiftUI views focused on presentation; move provider/runtime behavior into packages as it grows.
