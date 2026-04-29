@@ -97,12 +97,18 @@ private struct Command {
         case "add":
             let name = try options.required("name")
             let agent = try options.value("agent").map(parseAgentKind) ?? .codex
+            let agentParameters = try parseAgentParameters(options.agentParameterValues)
             let now = Date()
             let project = Project(
                 name: name,
                 repositoryPath: options.value("repo"),
                 workflowPath: options.value("workflow"),
-                defaultAgent: AgentConfiguration(kind: agent, model: options.value("model")),
+                defaultAgent: AgentConfiguration(
+                    kind: agent,
+                    model: options.value("model"),
+                    profile: options.value("profile"),
+                    parameters: agentParameters
+                ),
                 createdAt: now,
                 updatedAt: now
             )
@@ -143,7 +149,7 @@ private struct Command {
 
             let existingTasks = try await store.listTasks(projectID: project.id)
             let blockedBy = try await resolveTaskIDs(options.values("blocked-by"), store: store, projectID: project.id)
-            let agent = try options.value("agent").map(parseAgentKind)
+            let preferredAgent = try parseOptionalAgentConfiguration(options: options, defaultKind: project.defaultAgent.kind)
             let now = Date()
             let task = WorkItem(
                 projectID: project.id,
@@ -154,7 +160,7 @@ private struct Command {
                 priority: try options.value("priority").map(parsePriority) ?? .normal,
                 labels: normalizedLabels(options.values("label")),
                 blockedBy: blockedBy,
-                preferredAgent: agent.map { AgentConfiguration(kind: $0, model: options.value("model")) },
+                preferredAgent: preferredAgent,
                 createdAt: now,
                 updatedAt: now
             )
@@ -286,6 +292,10 @@ private struct Options {
         valuesByName[name] != nil
     }
 
+    var agentParameterValues: [String] {
+        values("agent-param") + values("agent-parameter")
+    }
+
     func required(_ name: String) throws -> String {
         guard let value = value(name), !value.isEmpty, value != "true" else {
             throw CLIError("Missing required option --\(name).")
@@ -339,6 +349,59 @@ private func parseAgentKind(_ value: String) throws -> AgentKind {
     }
 }
 
+private func parseOptionalAgentConfiguration(options: Options, defaultKind: AgentKind) throws -> AgentConfiguration? {
+    let kind = try options.value("agent").map(parseAgentKind)
+    let model = options.value("model")
+    let profile = options.value("profile")
+    let parameters = try parseAgentParameters(options.agentParameterValues)
+
+    guard kind != nil || model != nil || profile != nil || !parameters.isEmpty else {
+        return nil
+    }
+
+    return AgentConfiguration(
+        kind: kind ?? defaultKind,
+        model: model,
+        profile: profile,
+        parameters: parameters
+    )
+}
+
+private func parseAgentParameters(_ values: [String]) throws -> [String: String] {
+    var parameters: [String: String] = [:]
+    for rawValue in values.flatMap({ $0.split(separator: ",").map(String.init) }) {
+        guard let separator = rawValue.firstIndex(of: "=") else {
+            throw CLIError("Agent parameters must use KEY=VALUE syntax: '\(rawValue)'.")
+        }
+        let key = String(rawValue[..<separator]).trimmingCharacters(in: .whitespacesAndNewlines)
+        let value = String(rawValue[rawValue.index(after: separator)...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !key.isEmpty else {
+            throw CLIError("Agent parameter keys cannot be empty.")
+        }
+        parameters[key] = value
+    }
+    return parameters
+}
+
+private func agentSummary(_ configuration: AgentConfiguration?) -> String {
+    guard let configuration else {
+        return ""
+    }
+
+    var parts = [configuration.kind.rawValue]
+    if let model = configuration.model {
+        parts.append("model=\(model)")
+    }
+    if let profile = configuration.profile {
+        parts.append("profile=\(profile)")
+    }
+    if !configuration.parameters.isEmpty {
+        let parameters = configuration.parameters.keys.sorted().map { "\($0)=\(configuration.parameters[$0]!)" }
+        parts.append(parameters.joined(separator: ","))
+    }
+    return parts.joined(separator: " ")
+}
+
 private func printProjectTable(_ projects: [Project]) {
     guard !projects.isEmpty else {
         print("No projects")
@@ -350,7 +413,7 @@ private func printProjectTable(_ projects: [Project]) {
         print([
             project.id.rawValue,
             project.name,
-            project.defaultAgent.kind.rawValue,
+            agentSummary(project.defaultAgent),
             project.repositoryPath ?? ""
         ].joined(separator: "\t"))
     }
@@ -371,7 +434,7 @@ private func printTaskTable(_ tasks: [WorkItem], projects: [Project]) {
             projectsByID[task.projectID] ?? task.projectID.rawValue,
             task.state.rawValue,
             task.priority.title,
-            task.preferredAgent?.kind.rawValue ?? "",
+            agentSummary(task.preferredAgent),
             task.title
         ].joined(separator: "\t"))
     }
@@ -399,11 +462,11 @@ private func printHelp() {
 
         Project commands:
           project list [--json]
-          project add --name NAME [--repo PATH] [--workflow PATH] [--agent codex|claude|gemini|custom] [--model MODEL]
+          project add --name NAME [--repo PATH] [--workflow PATH] [--agent codex|claude|gemini|custom] [--model MODEL] [--profile PROFILE] [--agent-param KEY=VALUE]
 
         Task commands:
           task list [--project NAME_OR_ID] [--state STATE] [--json]
-          task add --project NAME_OR_ID --title TITLE [--description TEXT] [--identifier KEY] [--state STATE] [--priority PRIORITY] [--label LABEL] [--agent AGENT] [--model MODEL] [--blocked-by TASK]
+          task add --project NAME_OR_ID --title TITLE [--description TEXT] [--identifier KEY] [--state STATE] [--priority PRIORITY] [--label LABEL] [--agent AGENT] [--model MODEL] [--profile PROFILE] [--agent-param KEY=VALUE] [--blocked-by TASK]
           task move --task TASK --state STATE [--project NAME_OR_ID]
         """
     )

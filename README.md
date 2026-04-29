@@ -50,7 +50,7 @@ Examples:
 
 ```sh
 composerctl project add --name Composer --repo /path/to/repo --agent codex
-composerctl task add --project Composer --title "Add workflow loader" --state ready --priority high --label workflow
+composerctl task add --project Composer --title "Add workflow loader" --state ready --priority high --label workflow --agent claude --model sonnet --agent-param effort=high
 composerctl task list --project Composer
 composerctl task move --task LOCAL-1 --state human-review --project Composer
 composerctl --store-backend sqlite --store /tmp/composer.sqlite3 task list

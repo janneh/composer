@@ -310,6 +310,8 @@ private struct ProjectEditorSheet: View {
                     }
 
                     TextField("Model", text: $draft.modelText)
+                    TextField("Profile", text: $draft.profileText)
+                    TextField("Parameters", text: $draft.parametersText)
                 }
             }
             .formStyle(.grouped)
@@ -330,7 +332,7 @@ private struct ProjectEditorSheet: View {
             }
         }
         .padding(20)
-        .frame(width: 460, height: 430)
+        .frame(width: 480, height: 520)
     }
 }
 
@@ -341,6 +343,8 @@ private struct ProjectDraft: Identifiable {
     var workflowPathText: String
     var agentKind: AgentKind
     var modelText: String
+    var profileText: String
+    var parametersText: String
 
     init(project: Project?) {
         id = project?.id.rawValue ?? UUID().uuidString
@@ -349,6 +353,8 @@ private struct ProjectDraft: Identifiable {
         workflowPathText = project?.workflowPath ?? ""
         agentKind = project?.defaultAgent.kind ?? .codex
         modelText = project?.defaultAgent.model ?? ""
+        profileText = project?.defaultAgent.profile ?? ""
+        parametersText = formatAgentParameters(project?.defaultAgent.parameters ?? [:])
     }
 
     var isValid: Bool {
@@ -361,6 +367,8 @@ private struct ProjectDraft: Identifiable {
         copy.repositoryPathText = repositoryPathText.trimmingCharacters(in: .whitespacesAndNewlines)
         copy.workflowPathText = workflowPathText.trimmingCharacters(in: .whitespacesAndNewlines)
         copy.modelText = modelText.trimmingCharacters(in: .whitespacesAndNewlines)
+        copy.profileText = profileText.trimmingCharacters(in: .whitespacesAndNewlines)
+        copy.parametersText = parametersText.trimmingCharacters(in: .whitespacesAndNewlines)
         return copy
     }
 
@@ -373,7 +381,12 @@ private struct ProjectDraft: Identifiable {
     }
 
     var agentConfiguration: AgentConfiguration {
-        AgentConfiguration(kind: agentKind, model: modelText.nilIfEmpty)
+        AgentConfiguration(
+            kind: agentKind,
+            model: modelText.nilIfEmpty,
+            profile: profileText.nilIfEmpty,
+            parameters: parametersText.agentParameters
+        )
     }
 
     func apply(to project: Project) -> Project {
@@ -751,6 +764,12 @@ private struct TaskEditorView: View {
                         Text(kind.title).tag(Optional(kind))
                     }
                 }
+
+                if draft.agentKind != nil {
+                    TextField("Model", text: $draft.agentModelText)
+                    TextField("Profile", text: $draft.agentProfileText)
+                    TextField("Parameters", text: $draft.agentParametersText)
+                }
             }
 
             Section("Description") {
@@ -902,6 +921,9 @@ private struct TaskDraft: Equatable {
     var priority: WorkPriority
     var labelsText: String
     var agentKind: AgentKind?
+    var agentModelText: String
+    var agentProfileText: String
+    var agentParametersText: String
     var blockedBy: [TaskID]
 
     init(task: WorkItem) {
@@ -913,6 +935,9 @@ private struct TaskDraft: Equatable {
         priority = task.priority
         labelsText = task.labels.joined(separator: ", ")
         agentKind = task.preferredAgent?.kind
+        agentModelText = task.preferredAgent?.model ?? ""
+        agentProfileText = task.preferredAgent?.profile ?? ""
+        agentParametersText = formatAgentParameters(task.preferredAgent?.parameters ?? [:])
         blockedBy = task.blockedBy
     }
 
@@ -959,7 +984,16 @@ private struct TaskDraft: Equatable {
         updated.priority = priority
         updated.labels = labels
         updated.blockedBy = blockedBy.filter { $0 != task.id }
-        updated.preferredAgent = agentKind.map { AgentConfiguration(kind: $0) }
+        if let agentKind {
+            updated.preferredAgent = AgentConfiguration(
+                kind: agentKind,
+                model: agentModelText.nilIfEmpty,
+                profile: agentProfileText.nilIfEmpty,
+                parameters: agentParametersText.agentParameters
+            )
+        } else {
+            updated.preferredAgent = nil
+        }
         return updated
     }
 }
@@ -1041,4 +1075,27 @@ private extension String {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
     }
+
+    var agentParameters: [String: String] {
+        split(whereSeparator: { $0 == "," || $0 == "\n" })
+            .reduce(into: [:]) { result, rawPair in
+                let pair = String(rawPair).trimmingCharacters(in: .whitespacesAndNewlines)
+                guard let separator = pair.firstIndex(of: "=") else {
+                    return
+                }
+                let key = String(pair[..<separator]).trimmingCharacters(in: .whitespacesAndNewlines)
+                let value = String(pair[pair.index(after: separator)...]).trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !key.isEmpty else {
+                    return
+                }
+                result[key] = value
+            }
+    }
+}
+
+private func formatAgentParameters(_ parameters: [String: String]) -> String {
+    parameters.keys
+        .sorted()
+        .map { "\($0)=\(parameters[$0]!)" }
+        .joined(separator: ", ")
 }
