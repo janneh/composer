@@ -14,6 +14,7 @@ The first implementation keeps the important boundaries generic:
 - `SymphonySQLiteStore`: a durable SQLite-backed store with versioned schema setup, indexed queries, and JSON payload preservation.
 - `SymphonyWorkflow`: `WORKFLOW.md` discovery, loading, Markdown front matter parsing, UI diagnostics, and prompt rendering.
 - `SymphonyWorkspace`: local per-task workspace preparation backed by Git worktrees, with cleanup policy metadata on runs.
+- `SymphonyCodexAgent`: Codex CLI runner implementation behind the generic `AgentRunner` protocol.
 - `ComposerStorage`: app/CLI storage composition and backend selection.
 - `SymphonyRuntime`: dispatch planning/execution and normalized agent-event projection across stores, workflow providers, workspace providers, and agent runners. It depends on interfaces, not concrete providers.
 - `ComposerApp`: the SwiftUI macOS board and inspector.

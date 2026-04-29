@@ -18,7 +18,8 @@ let package = Package(
         .library(name: "SymphonySQLiteStore", targets: ["SymphonySQLiteStore"]),
         .library(name: "SymphonyRuntime", targets: ["SymphonyRuntime"]),
         .library(name: "SymphonyWorkflow", targets: ["SymphonyWorkflow"]),
-        .library(name: "SymphonyWorkspace", targets: ["SymphonyWorkspace"])
+        .library(name: "SymphonyWorkspace", targets: ["SymphonyWorkspace"]),
+        .library(name: "SymphonyCodexAgent", targets: ["SymphonyCodexAgent"])
     ],
     targets: [
         .target(name: "SymphonyCore"),
@@ -47,6 +48,10 @@ let package = Package(
         ),
         .target(
             name: "SymphonyWorkspace",
+            dependencies: ["SymphonyCore", "SymphonyInterfaces"]
+        ),
+        .target(
+            name: "SymphonyCodexAgent",
             dependencies: ["SymphonyCore", "SymphonyInterfaces"]
         ),
         .target(
@@ -99,6 +104,10 @@ let package = Package(
         .testTarget(
             name: "SymphonyWorkspaceTests",
             dependencies: ["SymphonyCore", "SymphonyWorkspace"]
+        ),
+        .testTarget(
+            name: "SymphonyCodexAgentTests",
+            dependencies: ["SymphonyCore", "SymphonyCodexAgent"]
         ),
         .testTarget(
             name: "ComposerStorageTests",
