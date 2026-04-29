@@ -21,15 +21,14 @@ public struct WorkflowDocument: Hashable, Sendable {
     }
 }
 
-public struct WorkflowLoader {
-    public var fileManager: FileManager
+public struct WorkflowLoader: Sendable {
     public var currentDirectoryURL: URL
 
     public init(
         fileManager: FileManager = .default,
         currentDirectoryURL: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
     ) {
-        self.fileManager = fileManager
+        _ = fileManager
         self.currentDirectoryURL = currentDirectoryURL
     }
 
@@ -88,7 +87,7 @@ public struct WorkflowLoader {
 
     private func fileExists(at fileURL: URL) -> Bool {
         var isDirectory: ObjCBool = false
-        return fileManager.fileExists(atPath: fileURL.path, isDirectory: &isDirectory) && !isDirectory.boolValue
+        return FileManager.default.fileExists(atPath: fileURL.path, isDirectory: &isDirectory) && !isDirectory.boolValue
     }
 }
 
