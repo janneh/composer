@@ -55,8 +55,8 @@ public struct WorkflowDiagnostic: Codable, Hashable, Sendable {
 }
 
 public protocol WorkspaceProvider: Sendable {
-    func prepareWorkspace(for task: WorkItem, project: Project) async throws -> String
-    func cleanupWorkspace(for task: WorkItem, project: Project) async throws
+    func prepareWorkspace(for task: WorkItem, project: Project) async throws -> WorkspaceReference
+    func cleanupWorkspace(_ workspace: WorkspaceReference, for task: WorkItem, project: Project) async throws
 }
 
 public protocol AgentRunner: Sendable {

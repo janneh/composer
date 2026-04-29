@@ -103,13 +103,20 @@ public struct WorkflowPromptRenderer: Sendable {
     }
 
     private func renderRun(_ run: RunAttempt) -> String {
-        """
+        let workspacePath = run.workspace?.path ?? "Not prepared"
+        let cleanupPolicy = run.workspace?.cleanupPolicy.rawValue ?? "Not set"
+        let preparedAt = (run.workspace?.preparedAt).map(format) ?? "Not prepared"
+
+        return """
         # Run Context
 
         - ID: \(run.id.rawValue)
         - Status: \(run.status.rawValue)
         - Agent: \(renderAgent(run.agent))
         - Session: \(run.sessionID?.rawValue ?? "Not started")
+        - Workspace: \(workspacePath)
+        - Workspace cleanup: \(cleanupPolicy)
+        - Workspace prepared: \(preparedAt)
         - Started: \(run.startedAt.map(format) ?? "Not started")
         - Finished: \(run.finishedAt.map(format) ?? "Not finished")
         - Summary: \(run.summary ?? "Not available")

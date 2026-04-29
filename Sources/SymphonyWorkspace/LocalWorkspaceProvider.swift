@@ -4,13 +4,16 @@ import SymphonyInterfaces
 
 public struct WorkspaceConfiguration: Equatable, Sendable {
     public var rootDirectory: URL
+    public var cleanupPolicy: WorkspaceCleanupPolicy
     public var reuseExisting: Bool
 
     public init(
         rootDirectory: URL = WorkspaceConfiguration.defaultRootDirectory(),
+        cleanupPolicy: WorkspaceCleanupPolicy = .keep,
         reuseExisting: Bool = true
     ) {
         self.rootDirectory = rootDirectory.standardizedFileURL
+        self.cleanupPolicy = cleanupPolicy
         self.reuseExisting = reuseExisting
     }
 
@@ -29,7 +32,7 @@ public actor LocalWorkspaceProvider: WorkspaceProvider {
         self.configuration = configuration
     }
 
-    public func prepareWorkspace(for task: WorkItem, project: Project) async throws -> String {
+    public func prepareWorkspace(for task: WorkItem, project: Project) async throws -> WorkspaceReference {
         let sourceURL = try repositoryURL(for: project)
         let destinationURL = workspaceURL(for: task, project: project)
 
@@ -37,7 +40,7 @@ public actor LocalWorkspaceProvider: WorkspaceProvider {
             guard configuration.reuseExisting else {
                 throw LocalWorkspaceProviderError.workspaceAlreadyExists(destinationURL.path)
             }
-            return destinationURL.path
+            return WorkspaceReference(path: destinationURL.path, cleanupPolicy: configuration.cleanupPolicy)
         }
 
         try await ensureGitRepository(at: sourceURL)
@@ -61,11 +64,11 @@ public actor LocalWorkspaceProvider: WorkspaceProvider {
             throw error
         }
 
-        return destinationURL.path
+        return WorkspaceReference(path: destinationURL.path, cleanupPolicy: configuration.cleanupPolicy)
     }
 
-    public func cleanupWorkspace(for task: WorkItem, project: Project) async throws {
-        let destinationURL = workspaceURL(for: task, project: project)
+    public func cleanupWorkspace(_ workspace: WorkspaceReference, for task: WorkItem, project: Project) async throws {
+        let destinationURL = URL(fileURLWithPath: workspace.path, isDirectory: true).standardizedFileURL
         guard FileManager.default.fileExists(atPath: destinationURL.path) else {
             return
         }

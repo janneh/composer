@@ -40,6 +40,11 @@ final class WorkflowPromptRendererTests: XCTestCase {
             taskID: task.id,
             agent: AgentConfiguration(kind: .claude, model: "sonnet"),
             status: .queued,
+            workspace: WorkspaceReference(
+                path: "/repo/.composer/workspaces/local-1",
+                cleanupPolicy: .removeOnSuccess,
+                preparedAt: Date(timeIntervalSince1970: 450)
+            ),
             startedAt: Date(timeIntervalSince1970: 500),
             summary: "Queued for preview"
         )
@@ -75,6 +80,8 @@ final class WorkflowPromptRendererTests: XCTestCase {
         XCTAssertTrue(prompt.contains("- Spec [docs]: https://example.com/spec"))
         XCTAssertTrue(prompt.contains("# Run Context"))
         XCTAssertTrue(prompt.contains("- ID: run-1"))
+        XCTAssertTrue(prompt.contains("- Workspace: /repo/.composer/workspaces/local-1"))
+        XCTAssertTrue(prompt.contains("- Workspace cleanup: removeOnSuccess"))
         XCTAssertTrue(prompt.contains("- Summary: Queued for preview"))
     }
 

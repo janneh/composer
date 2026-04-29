@@ -13,7 +13,7 @@ The first implementation keeps the important boundaries generic:
 - `SymphonyLocalStore`: a local JSON-backed store selectable by the app and CLI.
 - `SymphonySQLiteStore`: a durable SQLite-backed store with versioned schema setup, indexed queries, and JSON payload preservation.
 - `SymphonyWorkflow`: `WORKFLOW.md` discovery, loading, Markdown front matter parsing, UI diagnostics, and prompt rendering.
-- `SymphonyWorkspace`: local per-task workspace preparation backed by Git worktrees.
+- `SymphonyWorkspace`: local per-task workspace preparation backed by Git worktrees, with cleanup policy metadata on runs.
 - `ComposerStorage`: app/CLI storage composition and backend selection.
 - `SymphonyRuntime`: the orchestration state-machine skeleton. It depends on interfaces, not concrete stores or agents.
 - `ComposerApp`: the SwiftUI macOS board and inspector.

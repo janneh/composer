@@ -31,6 +31,11 @@ final class SQLiteStoreTests: XCTestCase {
             taskID: task.id,
             agent: AgentConfiguration(kind: .codex),
             status: .running,
+            workspace: WorkspaceReference(
+                path: "/tmp/composer-workspaces/local-1",
+                cleanupPolicy: .removeOnCompletion,
+                preparedAt: Date(timeIntervalSince1970: 150)
+            ),
             startedAt: Date(timeIntervalSince1970: 200)
         )
         let event = RuntimeEvent(

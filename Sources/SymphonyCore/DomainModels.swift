@@ -212,12 +212,37 @@ public enum RunStatus: String, Codable, Hashable, Identifiable, Sendable {
     public var id: String { rawValue }
 }
 
+public enum WorkspaceCleanupPolicy: String, Codable, CaseIterable, Hashable, Identifiable, Sendable {
+    case keep
+    case removeOnSuccess
+    case removeOnCompletion
+
+    public var id: String { rawValue }
+}
+
+public struct WorkspaceReference: Codable, Hashable, Sendable {
+    public var path: String
+    public var cleanupPolicy: WorkspaceCleanupPolicy
+    public var preparedAt: Date
+
+    public init(
+        path: String,
+        cleanupPolicy: WorkspaceCleanupPolicy = .keep,
+        preparedAt: Date = Date()
+    ) {
+        self.path = path
+        self.cleanupPolicy = cleanupPolicy
+        self.preparedAt = preparedAt
+    }
+}
+
 public struct RunAttempt: Identifiable, Codable, Hashable, Sendable {
     public var id: RunID
     public var taskID: TaskID
     public var agent: AgentConfiguration
     public var status: RunStatus
     public var sessionID: AgentSessionID?
+    public var workspace: WorkspaceReference?
     public var startedAt: Date?
     public var finishedAt: Date?
     public var summary: String?
@@ -228,6 +253,7 @@ public struct RunAttempt: Identifiable, Codable, Hashable, Sendable {
         agent: AgentConfiguration,
         status: RunStatus = .queued,
         sessionID: AgentSessionID? = nil,
+        workspace: WorkspaceReference? = nil,
         startedAt: Date? = nil,
         finishedAt: Date? = nil,
         summary: String? = nil
@@ -237,6 +263,7 @@ public struct RunAttempt: Identifiable, Codable, Hashable, Sendable {
         self.agent = agent
         self.status = status
         self.sessionID = sessionID
+        self.workspace = workspace
         self.startedAt = startedAt
         self.finishedAt = finishedAt
         self.summary = summary

@@ -28,10 +28,12 @@ final class LocalWorkspaceProviderTests: XCTestCase {
             configuration: WorkspaceConfiguration(rootDirectory: workspaceRootURL)
         )
 
-        let workspacePath = try await provider.prepareWorkspace(for: task, project: project)
-        let repeatedWorkspacePath = try await provider.prepareWorkspace(for: task, project: project)
+        let workspace = try await provider.prepareWorkspace(for: task, project: project)
+        let repeatedWorkspace = try await provider.prepareWorkspace(for: task, project: project)
+        let workspacePath = workspace.path
 
-        XCTAssertEqual(repeatedWorkspacePath, workspacePath)
+        XCTAssertEqual(repeatedWorkspace.path, workspacePath)
+        XCTAssertEqual(workspace.cleanupPolicy, .keep)
         XCTAssertEqual(
             workspacePath,
             workspaceRootURL
@@ -46,8 +48,43 @@ final class LocalWorkspaceProviderTests: XCTestCase {
             "true"
         )
 
-        try await provider.cleanupWorkspace(for: task, project: project)
+        try await provider.cleanupWorkspace(workspace, for: task, project: project)
         XCTAssertFalse(FileManager.default.fileExists(atPath: workspacePath))
+    }
+
+    func testPrepareWorkspaceUsesConfiguredCleanupPolicy() async throws {
+        let rootURL = temporaryDirectory()
+        let repositoryURL = rootURL.appendingPathComponent("repo", isDirectory: true)
+        try FileManager.default.createDirectory(at: repositoryURL, withIntermediateDirectories: true)
+        try initializeGitRepository(at: repositoryURL)
+        try "hello\n".write(to: repositoryURL.appendingPathComponent("README.md"), atomically: true, encoding: .utf8)
+        try runGit(["-C", repositoryURL.path, "add", "README.md"])
+        try runGit(["-C", repositoryURL.path, "commit", "-m", "Initial commit"])
+
+        let project = Project(
+            id: ProjectID(rawValue: "project-1"),
+            name: "Composer App",
+            repositoryPath: repositoryURL.path
+        )
+        let task = WorkItem(
+            id: TaskID(rawValue: "task-1"),
+            projectID: project.id,
+            identifier: "LOCAL-1",
+            title: "Prepare workspace"
+        )
+        let provider = LocalWorkspaceProvider(
+            configuration: WorkspaceConfiguration(
+                rootDirectory: rootURL.appendingPathComponent("workspaces", isDirectory: true),
+                cleanupPolicy: .removeOnSuccess
+            )
+        )
+
+        let workspace = try await provider.prepareWorkspace(for: task, project: project)
+
+        XCTAssertEqual(workspace.cleanupPolicy, .removeOnSuccess)
+        XCTAssertFalse(workspace.preparedAt.timeIntervalSince1970.isZero)
+
+        try await provider.cleanupWorkspace(workspace, for: task, project: project)
     }
 
     func testPrepareWorkspaceRequiresRepositoryPath() async throws {
@@ -116,16 +153,16 @@ final class LocalWorkspaceProviderTests: XCTestCase {
             configuration: WorkspaceConfiguration(rootDirectory: workspaceRootURL, reuseExisting: false)
         )
 
-        let workspacePath = try await reusingProvider.prepareWorkspace(for: task, project: project)
+        let workspace = try await reusingProvider.prepareWorkspace(for: task, project: project)
 
         do {
             _ = try await strictProvider.prepareWorkspace(for: task, project: project)
             XCTFail("Expected existing workspace error")
         } catch let error as LocalWorkspaceProviderError {
-            XCTAssertEqual(error, .workspaceAlreadyExists(workspacePath))
+            XCTAssertEqual(error, .workspaceAlreadyExists(workspace.path))
         }
 
-        try await reusingProvider.cleanupWorkspace(for: task, project: project)
+        try await reusingProvider.cleanupWorkspace(workspace, for: task, project: project)
     }
 
     private func initializeGitRepository(at url: URL) throws {

@@ -25,7 +25,7 @@ The repository is licensed under Apache-2.0.
 - `SymphonySQLiteStore`: durable SQLite store conforming to the same store protocols. It currently preserves full domain objects as JSON payloads plus indexed columns for queries.
 - `ComposerStorage`: edge-level storage factory for choosing JSON or SQLite while returning protocol-shaped stores.
 - `SymphonyWorkflow`: `WORKFLOW.md` discovery/loading, Markdown front matter parsing, UI diagnostics, and prompt rendering.
-- `SymphonyWorkspace`: local workspace provider that prepares per-task Git worktrees behind the generic workspace protocol.
+- `SymphonyWorkspace`: local workspace provider that prepares per-task Git worktrees and returns cleanup policy metadata behind the generic workspace protocol.
 - `SymphonyRuntime`: orchestration state-machine skeleton.
 - `ComposerApp`: SwiftUI macOS UI.
 - `ComposerCLI`: `composerctl` command-line surface for inserting projects/tasks into the same local store as the app.
@@ -88,6 +88,7 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 - Workflow front matter supports a conservative `key: value` subset with strings, booleans, integers, doubles, and inline string lists.
 - `ComposerApp` publishes selected-project workflow diagnostics from `WorkflowLoader` and shows them above the board.
 - `SymphonyWorkflow.FileWorkflowProvider` adapts loaded workflow documents to the generic `WorkflowProvider` prompt interface.
-- `SymphonyWorkspace.LocalWorkspaceProvider` prepares deterministic per-task workspaces as detached Git worktrees under a configurable root directory.
+- `RunAttempt.workspace` tracks the prepared workspace path, cleanup policy, and preparation time.
+- `SymphonyWorkspace.LocalWorkspaceProvider` prepares deterministic per-task workspaces as detached Git worktrees under a configurable root directory and returns `WorkspaceReference` values for storage.
 - User-visible edits should append runtime events where useful so later sync has a clear mutation history.
 - Keep SwiftUI views focused on presentation; move provider/runtime behavior into packages as it grows.
