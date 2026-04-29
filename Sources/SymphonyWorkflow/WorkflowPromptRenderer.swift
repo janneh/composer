@@ -176,11 +176,11 @@ public struct FileWorkflowProvider: WorkflowProvider {
         self.renderer = renderer
     }
 
-    public func prompt(for task: WorkItem, project: Project) async throws -> String {
+    public func prompt(for task: WorkItem, project: Project, run: RunAttempt?) async throws -> String {
         let document = try loader.load(project: project)
         return renderer.render(
             document: document,
-            context: WorkflowPromptContext(project: project, task: task)
+            context: WorkflowPromptContext(project: project, task: task, run: run)
         )
     }
 

@@ -15,7 +15,7 @@ The first implementation keeps the important boundaries generic:
 - `SymphonyWorkflow`: `WORKFLOW.md` discovery, loading, Markdown front matter parsing, UI diagnostics, and prompt rendering.
 - `SymphonyWorkspace`: local per-task workspace preparation backed by Git worktrees, with cleanup policy metadata on runs.
 - `ComposerStorage`: app/CLI storage composition and backend selection.
-- `SymphonyRuntime`: the orchestration state-machine skeleton. It depends on interfaces, not concrete stores or agents.
+- `SymphonyRuntime`: dispatch planning and execution across stores, workflow providers, workspace providers, and agent runners. It depends on interfaces, not concrete providers.
 - `ComposerApp`: the SwiftUI macOS board and inspector.
 - `ComposerCLI`: the `composerctl` command-line surface for writing projects and tasks into the selected local store backend.
 

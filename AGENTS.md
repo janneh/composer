@@ -26,7 +26,7 @@ The repository is licensed under Apache-2.0.
 - `ComposerStorage`: edge-level storage factory for choosing JSON or SQLite while returning protocol-shaped stores.
 - `SymphonyWorkflow`: `WORKFLOW.md` discovery/loading, Markdown front matter parsing, UI diagnostics, and prompt rendering.
 - `SymphonyWorkspace`: local workspace provider that prepares per-task Git worktrees and returns cleanup policy metadata behind the generic workspace protocol.
-- `SymphonyRuntime`: orchestration state-machine skeleton.
+- `SymphonyRuntime`: dispatch planning and execution across stores, workflow providers, workspace providers, and agent runners.
 - `ComposerApp`: SwiftUI macOS UI.
 - `ComposerCLI`: `composerctl` command-line surface for inserting projects/tasks into the same local store as the app.
 - `Tests/SymphonyCoreTests`: focused domain tests.
@@ -90,5 +90,6 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 - `SymphonyWorkflow.FileWorkflowProvider` adapts loaded workflow documents to the generic `WorkflowProvider` prompt interface.
 - `RunAttempt.workspace` tracks the prepared workspace path, cleanup policy, and preparation time.
 - `SymphonyWorkspace.LocalWorkspaceProvider` prepares deterministic per-task workspaces as detached Git worktrees under a configurable root directory and returns `WorkspaceReference` values for storage.
+- `SymphonyRuntime.Orchestrator.dispatchReady` creates queued/running run records, prepares a workspace, renders a run-aware prompt, starts the selected runner, moves the task to running, and appends runtime events.
 - User-visible edits should append runtime events where useful so later sync has a clear mutation history.
 - Keep SwiftUI views focused on presentation; move provider/runtime behavior into packages as it grows.

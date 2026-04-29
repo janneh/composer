@@ -85,6 +85,10 @@ let package = Package(
             dependencies: ["SymphonyCore"]
         ),
         .testTarget(
+            name: "SymphonyRuntimeTests",
+            dependencies: ["SymphonyCore", "SymphonyInterfaces", "SymphonyRuntime"]
+        ),
+        .testTarget(
             name: "SymphonySQLiteStoreTests",
             dependencies: ["SymphonyCore", "SymphonySQLiteStore"]
         ),

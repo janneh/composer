@@ -34,8 +34,14 @@ public protocol TrackerClient: Sendable {
 }
 
 public protocol WorkflowProvider: Sendable {
-    func prompt(for task: WorkItem, project: Project) async throws -> String
+    func prompt(for task: WorkItem, project: Project, run: RunAttempt?) async throws -> String
     func validate(project: Project) async throws -> [WorkflowDiagnostic]
+}
+
+public extension WorkflowProvider {
+    func prompt(for task: WorkItem, project: Project) async throws -> String {
+        try await prompt(for: task, project: project, run: nil)
+    }
 }
 
 public struct WorkflowDiagnostic: Codable, Hashable, Sendable {
