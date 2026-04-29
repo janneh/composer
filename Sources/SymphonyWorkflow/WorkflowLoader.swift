@@ -5,10 +5,19 @@ import SymphonyInterfaces
 public struct WorkflowDocument: Hashable, Sendable {
     public var fileURL: URL
     public var content: String
+    public var frontMatter: WorkflowFrontMatter?
+    public var body: String
 
-    public init(fileURL: URL, content: String) {
+    public init(
+        fileURL: URL,
+        content: String,
+        frontMatter: WorkflowFrontMatter? = nil,
+        body: String? = nil
+    ) {
         self.fileURL = fileURL
         self.content = content
+        self.frontMatter = frontMatter
+        self.body = body ?? content
     }
 }
 
@@ -27,7 +36,7 @@ public struct WorkflowLoader {
     public func load(project: Project) throws -> WorkflowDocument {
         let fileURL = try resolveWorkflowURL(project: project)
         let content = try String(contentsOf: fileURL, encoding: .utf8)
-        return WorkflowDocument(fileURL: fileURL, content: content)
+        return try WorkflowParser.parse(content: content, fileURL: fileURL)
     }
 
     public func resolveWorkflowURL(project: Project) throws -> URL {
