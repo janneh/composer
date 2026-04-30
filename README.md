@@ -19,6 +19,7 @@ The first implementation keeps the important boundaries generic:
 - `SymphonyGeminiAgent`: Gemini CLI runner implementation behind the generic `AgentRunner` protocol.
 - `ComposerStorage`: app/CLI storage composition and backend selection.
 - `SymphonyRuntime`: dispatch planning/execution, run control, runtime service/XPC boundary types, and normalized agent-event projection across stores, workflow providers, workspace providers, and agent runners. It depends on interfaces, not concrete providers.
+- `SymphonySync`: provider-neutral sync outbox processing with transport and store protocols.
 - `ComposerApp`: the SwiftUI macOS board and inspector.
 - `ComposerCLI`: the `composerctl` command-line surface for writing projects and tasks into the selected local store backend.
 - `ComposerRuntimeHelper`: the LaunchAgent-hosted helper that exposes runtime service calls over XPC.

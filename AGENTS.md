@@ -27,6 +27,7 @@ The repository is licensed under Apache-2.0.
 - `SymphonyWorkflow`: `WORKFLOW.md` discovery/loading, Markdown front matter parsing, UI diagnostics, and prompt rendering.
 - `SymphonyWorkspace`: local workspace provider that prepares per-task Git worktrees and returns cleanup policy metadata behind the generic workspace protocol.
 - `SymphonyRuntime`: dispatch planning/execution and normalized agent-event projection across stores, workflow providers, workspace providers, and agent runners.
+- `SymphonySync`: provider-neutral sync outbox processor and retry policy.
 - `SymphonyCodexAgent`: Codex CLI runner implementation behind the generic agent runner protocol.
 - `SymphonyClaudeAgent`: Claude Code CLI runner implementation behind the generic agent runner protocol.
 - `SymphonyGeminiAgent`: Gemini CLI runner implementation behind the generic agent runner protocol.
@@ -101,6 +102,7 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 - `SymphonyRuntime.LocalRuntimeService` and the runtime XPC request/response codec are the boundary for app/helper runtime calls; keep direct `Orchestrator` use behind that service when wiring process boundaries.
 - `ComposerRuntimeHelper` composes durable storage, `FileWorkflowProvider`, `LocalWorkspaceProvider`, and concrete agent runners behind the runtime XPC service.
 - `ComposerApp` can use the helper by setting `COMPOSER_RUNTIME_MODE=helper` or the `ComposerRuntimeMode` app default; in helper mode runtime actions go through `RuntimeXPCClient` so active runs live outside the foreground app process.
+- `SymphonySync.SyncOutboxProcessor` works only through `SyncOutboxStore` and `SyncOutboxTransport`; concrete cloud/tracker transports should stay outside core app/runtime code.
 - Project defaults and task preferred agents can carry provider kind, model, profile, and string parameters; keep provider-specific interpretation inside provider packages.
 - `AppRuntimeEnvironment` owns app-edge storage/orchestrator composition; keep SwiftUI app lifecycle code focused on window/model setup.
 - `SymphonyCodexAgent.CodexAgentRunner` wraps `codex exec --json` and maps JSONL output into normalized `AgentRunEvent` values.

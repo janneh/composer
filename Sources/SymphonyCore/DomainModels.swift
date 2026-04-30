@@ -313,6 +313,84 @@ public struct RuntimeEvent: Identifiable, Codable, Hashable, Sendable {
     }
 }
 
+public enum SyncOutboxAggregate: String, Codable, Hashable, Sendable {
+    case project
+    case task
+    case run
+    case event
+    case custom
+}
+
+public enum SyncOutboxOperation: String, Codable, Hashable, Sendable {
+    case create
+    case update
+    case delete
+    case append
+}
+
+public enum SyncOutboxStatus: String, Codable, Hashable, Sendable {
+    case pending
+    case inFlight
+    case sent
+    case failed
+}
+
+public struct SyncOutboxReceipt: Codable, Hashable, Sendable {
+    public var externalReference: String?
+    public var metadata: [String: String]
+
+    public init(externalReference: String? = nil, metadata: [String: String] = [:]) {
+        self.externalReference = externalReference
+        self.metadata = metadata
+    }
+}
+
+public struct SyncOutboxEntry: Identifiable, Codable, Hashable, Sendable {
+    public var id: String
+    public var aggregate: SyncOutboxAggregate
+    public var aggregateID: String
+    public var operation: SyncOutboxOperation
+    public var payload: [String: String]
+    public var status: SyncOutboxStatus
+    public var attemptCount: Int
+    public var availableAt: Date
+    public var lastError: String?
+    public var externalReference: String?
+    public var receiptMetadata: [String: String]
+    public var createdAt: Date
+    public var updatedAt: Date
+
+    public init(
+        id: String = UUID().uuidString,
+        aggregate: SyncOutboxAggregate,
+        aggregateID: String,
+        operation: SyncOutboxOperation,
+        payload: [String: String] = [:],
+        status: SyncOutboxStatus = .pending,
+        attemptCount: Int = 0,
+        availableAt: Date = Date(),
+        lastError: String? = nil,
+        externalReference: String? = nil,
+        receiptMetadata: [String: String] = [:],
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.aggregate = aggregate
+        self.aggregateID = aggregateID
+        self.operation = operation
+        self.payload = payload
+        self.status = status
+        self.attemptCount = attemptCount
+        self.availableAt = availableAt
+        self.lastError = lastError
+        self.externalReference = externalReference
+        self.receiptMetadata = receiptMetadata
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
 public struct AgentCapabilities: Codable, Hashable, Sendable {
     public var supportsStreaming: Bool
     public var supportsResume: Bool

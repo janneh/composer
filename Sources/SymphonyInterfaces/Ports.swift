@@ -102,6 +102,16 @@ public protocol SyncEngine: Sendable {
     func push() async throws
 }
 
+public protocol SyncOutboxStore: Sendable {
+    func enqueueSyncOutboxEntry(_ entry: SyncOutboxEntry) async throws
+    func listPendingSyncOutboxEntries(limit: Int, now: Date) async throws -> [SyncOutboxEntry]
+    func updateSyncOutboxEntry(_ entry: SyncOutboxEntry) async throws
+}
+
+public protocol SyncOutboxTransport: Sendable {
+    func push(_ entry: SyncOutboxEntry) async throws -> SyncOutboxReceipt
+}
+
 public protocol RuntimeEventSink: Sendable {
     func emit(_ event: RuntimeEvent) async
 }
