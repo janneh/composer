@@ -11,6 +11,7 @@ final class LinearTrackerClientTests: XCTestCase {
                 apiKey: "linear-key",
                 teamID: "team-1",
                 localProjectID: projectID,
+                projectSlugID: "composer",
                 readyStateNames: ["Ready"],
                 pageSize: 500
             ),
@@ -33,8 +34,35 @@ final class LinearTrackerClientTests: XCTestCase {
         let requests = await transport.recordedRequests()
         XCTAssertEqual(requests.count, 1)
         XCTAssertTrue(requests[0].query.contains("team(id: $teamID)"))
+        XCTAssertTrue(requests[0].query.contains("projectSlugID"))
+        XCTAssertTrue(requests[0].query.contains("project: { slugId"))
         XCTAssertEqual(requests[0].variables["teamID"], .string("team-1"))
+        XCTAssertEqual(requests[0].variables["projectSlugID"], .string("composer"))
         XCTAssertEqual(requests[0].variables["first"], .int(100))
+    }
+
+    func testListReadyTasksRequiresProjectSlugID() async {
+        let transport = RecordingLinearTransport(responses: [])
+        let client = LinearTrackerClient(
+            configuration: LinearTrackerConfiguration(
+                apiKey: "linear-key",
+                teamID: "team-1",
+                localProjectID: ProjectID(rawValue: "project-1")
+            ),
+            transport: transport
+        )
+
+        do {
+            _ = try await client.listReadyTasks(projectID: nil)
+            XCTFail("Expected missing Linear project slug ID error.")
+        } catch let error as LinearTrackerError {
+            XCTAssertEqual(error, .missingProjectSlugID)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        let requests = await transport.recordedRequests()
+        XCTAssertEqual(requests, [])
     }
 
     func testListReadyTasksIgnoresOtherLocalProjectIDs() async throws {
@@ -122,7 +150,8 @@ final class LinearTrackerClientTests: XCTestCase {
             configuration: LinearTrackerConfiguration(
                 apiKey: "linear-key",
                 teamID: "team-1",
-                localProjectID: ProjectID(rawValue: "project-1")
+                localProjectID: ProjectID(rawValue: "project-1"),
+                projectSlugID: "composer"
             ),
             transport: RecordingLinearTransport(responses: [Self.graphQLErrorResponse])
         )

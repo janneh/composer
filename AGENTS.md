@@ -111,6 +111,7 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 - `SymphonySync.SyncConflictPolicy` resolves provider-neutral local/base/remote snapshots; provider adapters should translate remote revisions into `SyncRecordVersion` without leaking provider types into the app.
 - `SyncCloudTransport` is the provider-neutral pull/push boundary for hosted sync and external tracker adapters.
 - `SymphonyLinearTracker.LinearTrackerClient` maps Linear GraphQL issues into `WorkItem` values behind `TrackerClient`; do not import it from UI or runtime code directly.
+- Linear ready-task polling requires a configured Linear project slug ID and applies it in the GraphQL issue filter.
 - `SymphonyGitHubIssuesTracker.GitHubIssuesTrackerClient` maps GitHub REST issues into `WorkItem` values behind `TrackerClient`; keep GitHub REST details out of UI/runtime code.
 - Project defaults and task preferred agents can carry provider kind, model, profile, and string parameters; keep provider-specific interpretation inside provider packages.
 - `AppRuntimeEnvironment` owns app-edge storage/orchestrator composition; keep SwiftUI app lifecycle code focused on window/model setup.

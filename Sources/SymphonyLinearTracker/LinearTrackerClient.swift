@@ -6,6 +6,7 @@ public struct LinearTrackerConfiguration: Equatable, Sendable {
     public var apiKey: String
     public var teamID: String
     public var localProjectID: ProjectID
+    public var projectSlugID: String?
     public var endpoint: URL
     public var readyStateNames: Set<String>
     public var stateIDsByWorkState: [WorkState: String]
@@ -15,6 +16,7 @@ public struct LinearTrackerConfiguration: Equatable, Sendable {
         apiKey: String,
         teamID: String,
         localProjectID: ProjectID,
+        projectSlugID: String? = nil,
         endpoint: URL = URL(string: "https://api.linear.app/graphql")!,
         readyStateNames: Set<String> = ["Ready"],
         stateIDsByWorkState: [WorkState: String] = [:],
@@ -23,6 +25,7 @@ public struct LinearTrackerConfiguration: Equatable, Sendable {
         self.apiKey = apiKey
         self.teamID = teamID
         self.localProjectID = localProjectID
+        self.projectSlugID = Self.trimmedNonEmpty(projectSlugID)
         self.endpoint = endpoint
         self.readyStateNames = Set(readyStateNames.map(Self.normalizedStateName))
         self.stateIDsByWorkState = stateIDsByWorkState
@@ -35,6 +38,15 @@ public struct LinearTrackerConfiguration: Equatable, Sendable {
 
     private static func normalizedStateName(_ value: String) -> String {
         value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    private static func trimmedNonEmpty(_ value: String?) -> String? {
+        guard let value else {
+            return nil
+        }
+
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 
@@ -113,6 +125,7 @@ public struct URLSessionLinearGraphQLTransport: LinearGraphQLTransport {
 public enum LinearTrackerError: Error, Equatable, LocalizedError {
     case graphQLErrors([String])
     case invalidResponse
+    case missingProjectSlugID
     case missingStateMapping(WorkState)
     case operationFailed(String)
     case httpStatus(Int, String)
@@ -123,6 +136,8 @@ public enum LinearTrackerError: Error, Equatable, LocalizedError {
             return "Linear GraphQL error: \(messages.joined(separator: "; "))"
         case .invalidResponse:
             return "Linear returned an invalid response."
+        case .missingProjectSlugID:
+            return "No Linear project slug ID is configured."
         case let .missingStateMapping(state):
             return "No Linear workflow state ID is configured for \(state.title)."
         case let .operationFailed(operation):
@@ -156,12 +171,16 @@ public struct LinearTrackerClient: TrackerClient {
         guard projectID == nil || projectID == configuration.localProjectID else {
             return []
         }
+        guard let projectSlugID = configuration.projectSlugID else {
+            throw LinearTrackerError.missingProjectSlugID
+        }
 
         let data = try await perform(
             LinearGraphQLRequest(
                 query: Self.readyIssuesQuery,
                 variables: [
                     "teamID": .string(configuration.teamID),
+                    "projectSlugID": .string(projectSlugID),
                     "first": .int(configuration.pageSize)
                 ]
             ),
@@ -232,9 +251,12 @@ public struct LinearTrackerClient: TrackerClient {
     }
 
     private static let readyIssuesQuery = """
-    query ComposerLinearReadyIssues($teamID: String!, $first: Int!) {
+    query ComposerLinearReadyIssues($teamID: String!, $projectSlugID: String!, $first: Int!) {
       team(id: $teamID) {
-        issues(first: $first) {
+        issues(
+          first: $first
+          filter: { project: { slugId: { eq: $projectSlugID } } }
+        ) {
           nodes {
             id
             identifier
