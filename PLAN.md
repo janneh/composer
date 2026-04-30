@@ -90,7 +90,7 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 - [x] Split runtime composition from SwiftUI app lifecycle.
 - [x] Add XPC boundary.
 - [x] Add helper/LaunchAgent process.
-- [ ] Keep active runs alive when the main window closes.
+- [x] Keep active runs alive when the main window closes.
 
 ### 6. Sync And External Trackers
 

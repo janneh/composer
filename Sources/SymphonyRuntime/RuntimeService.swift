@@ -61,6 +61,66 @@ public actor LocalRuntimeService: RuntimeService {
     }
 }
 
+public actor FallbackRuntimeService: RuntimeService {
+    private let primary: any RuntimeService
+    private let fallback: any RuntimeService
+    private let shouldFallback: @Sendable (Error) -> Bool
+
+    public init(
+        primary: any RuntimeService,
+        fallback: any RuntimeService,
+        shouldFallback: @escaping @Sendable (Error) -> Bool
+    ) {
+        self.primary = primary
+        self.fallback = fallback
+        self.shouldFallback = shouldFallback
+    }
+
+    public func previewDispatch(projectID: ProjectID?) async throws -> DispatchPlan {
+        try await call(primary: { try await primary.previewDispatch(projectID: projectID) },
+                       fallback: { try await fallback.previewDispatch(projectID: projectID) })
+    }
+
+    public func dispatchReady(projectID: ProjectID?) async throws -> DispatchExecution {
+        try await call(primary: { try await primary.dispatchReady(projectID: projectID) },
+                       fallback: { try await fallback.dispatchReady(projectID: projectID) })
+    }
+
+    public func cancelRun(taskID: TaskID, runID: RunID) async throws -> RunAttempt {
+        try await call(primary: { try await primary.cancelRun(taskID: taskID, runID: runID) },
+                       fallback: { try await fallback.cancelRun(taskID: taskID, runID: runID) })
+    }
+
+    public func retryTask(id taskID: TaskID) async throws -> WorkItem {
+        try await call(primary: { try await primary.retryTask(id: taskID) },
+                       fallback: { try await fallback.retryTask(id: taskID) })
+    }
+
+    public func markStalledRuns(olderThan interval: TimeInterval) async throws -> [RunAttempt] {
+        try await call(primary: { try await primary.markStalledRuns(olderThan: interval) },
+                       fallback: { try await fallback.markStalledRuns(olderThan: interval) })
+    }
+
+    public func resumeRun(taskID: TaskID, runID: RunID) async throws -> RunAttempt {
+        try await call(primary: { try await primary.resumeRun(taskID: taskID, runID: runID) },
+                       fallback: { try await fallback.resumeRun(taskID: taskID, runID: runID) })
+    }
+
+    private func call<T>(
+        primary: () async throws -> T,
+        fallback: () async throws -> T
+    ) async throws -> T {
+        do {
+            return try await primary()
+        } catch {
+            guard shouldFallback(error) else {
+                throw error
+            }
+            return try await fallback()
+        }
+    }
+}
+
 public enum RuntimeServiceRequest: Codable, Hashable, Sendable {
     case previewDispatch(projectID: ProjectID?)
     case dispatchReady(projectID: ProjectID?)
@@ -85,6 +145,27 @@ public enum RuntimeServiceBoundaryError: Error, Equatable, CustomStringConvertib
         switch self {
         case let .unexpectedResponse(expected, actual):
             return "Expected runtime service response \(expected), got \(actual)."
+        }
+    }
+
+    public var errorDescription: String? {
+        description
+    }
+}
+
+public enum RuntimeXPCClientError: Error, Equatable, CustomStringConvertible, LocalizedError {
+    case invalidProxy
+    case missingResponse
+    case remoteError(String)
+
+    public var description: String {
+        switch self {
+        case .invalidProxy:
+            return "Could not create runtime XPC service proxy."
+        case .missingResponse:
+            return "Runtime XPC service returned no response."
+        case let .remoteError(message):
+            return message
         }
     }
 
@@ -170,6 +251,96 @@ public final class RuntimeServiceXPCAdapter: NSObject, ComposerRuntimeXPCServici
                 reply(nil, error.localizedDescription)
             }
         }
+    }
+}
+
+public final class RuntimeXPCClient: RuntimeService, @unchecked Sendable {
+    public static let defaultMachServiceName = "dev.janneh.composer.runtime"
+
+    private let machServiceName: String
+    private let lock = NSLock()
+    private var connection: NSXPCConnection?
+
+    public init(machServiceName: String = RuntimeXPCClient.defaultMachServiceName) {
+        self.machServiceName = machServiceName
+    }
+
+    deinit {
+        connection?.invalidate()
+    }
+
+    public func previewDispatch(projectID: ProjectID?) async throws -> DispatchPlan {
+        try await send(.previewDispatch(projectID: projectID)).dispatchPlan()
+    }
+
+    public func dispatchReady(projectID: ProjectID?) async throws -> DispatchExecution {
+        try await send(.dispatchReady(projectID: projectID)).dispatchExecution()
+    }
+
+    public func cancelRun(taskID: TaskID, runID: RunID) async throws -> RunAttempt {
+        try await send(.cancelRun(taskID: taskID, runID: runID)).runAttempt()
+    }
+
+    public func retryTask(id taskID: TaskID) async throws -> WorkItem {
+        try await send(.retryTask(taskID: taskID)).workItem()
+    }
+
+    public func markStalledRuns(olderThan interval: TimeInterval) async throws -> [RunAttempt] {
+        try await send(.markStalledRuns(olderThan: interval)).runAttempts()
+    }
+
+    public func resumeRun(taskID: TaskID, runID: RunID) async throws -> RunAttempt {
+        try await send(.resumeRun(taskID: taskID, runID: runID)).runAttempt()
+    }
+
+    private func send(_ request: RuntimeServiceRequest) async throws -> RuntimeServiceResponse {
+        let requestData = try RuntimeXPCCodec.encodeRequest(request)
+        return try await withCheckedThrowingContinuation { continuation in
+            guard let proxy = remoteProxy(errorHandler: { error in
+                continuation.resume(throwing: error)
+            }) else {
+                continuation.resume(throwing: RuntimeXPCClientError.invalidProxy)
+                return
+            }
+
+            proxy.handleRuntimeRequest(requestData) { responseData, errorMessage in
+                if let errorMessage {
+                    continuation.resume(throwing: RuntimeXPCClientError.remoteError(errorMessage))
+                    return
+                }
+
+                guard let responseData else {
+                    continuation.resume(throwing: RuntimeXPCClientError.missingResponse)
+                    return
+                }
+
+                do {
+                    continuation.resume(returning: try RuntimeXPCCodec.decodeResponse(responseData))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    private func remoteProxy(errorHandler: @escaping (Error) -> Void) -> ComposerRuntimeXPCServicing? {
+        let connection = currentConnection()
+        return connection.remoteObjectProxyWithErrorHandler(errorHandler) as? ComposerRuntimeXPCServicing
+    }
+
+    private func currentConnection() -> NSXPCConnection {
+        lock.lock()
+        defer { lock.unlock() }
+
+        if let connection {
+            return connection
+        }
+
+        let newConnection = NSXPCConnection(machServiceName: machServiceName)
+        newConnection.remoteObjectInterface = RuntimeXPCInterfaceFactory.makeInterface()
+        newConnection.resume()
+        connection = newConnection
+        return newConnection
     }
 }
 

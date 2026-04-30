@@ -49,6 +49,31 @@ final class AppStorageConfigurationTests: XCTestCase {
         XCTAssertEqual(configuration.fileURL?.path, "/tmp/env-store.sqlite3")
     }
 
+    func testRuntimeConnectionReadsHelperMode() {
+        let defaults = makeDefaults()
+        defaults.set("local", forKey: AppRuntimeConnection.modeDefaultsKey)
+        defaults.set("dev.janneh.default", forKey: AppRuntimeConnection.machServiceDefaultsKey)
+
+        let connection = AppRuntimeConnection.fromLaunchConfiguration(
+            environment: [
+                AppRuntimeConnection.modeEnvironmentKey: "helper",
+                AppRuntimeConnection.machServiceEnvironmentKey: "dev.janneh.test"
+            ],
+            defaults: defaults
+        )
+
+        XCTAssertEqual(connection, .helper(machServiceName: "dev.janneh.test"))
+    }
+
+    func testRuntimeConnectionDefaultsToLocal() {
+        let connection = AppRuntimeConnection.fromLaunchConfiguration(
+            environment: [:],
+            defaults: makeDefaults()
+        )
+
+        XCTAssertEqual(connection, .local)
+    }
+
     func testRuntimeEnvironmentComposesStoreAndRuntimeService() async throws {
         let fileURL = temporaryDirectory().appendingPathComponent("runtime.sqlite3")
         let selection = try StoreFactory.makeStore(
@@ -59,9 +84,24 @@ final class AppStorageConfigurationTests: XCTestCase {
 
         XCTAssertEqual(environment.storageBackend, .sqlite)
         XCTAssertEqual(environment.storeFileURL, fileURL)
+        XCTAssertFalse(environment.supportsRunDispatch)
         XCTAssertNil(environment.storeChanges())
         let plan = try await environment.runtimeService.previewDispatch(projectID: nil)
         XCTAssertEqual(plan.ready, [])
+    }
+
+    func testRuntimeEnvironmentEnablesDispatchForHelperMode() throws {
+        let fileURL = temporaryDirectory().appendingPathComponent("runtime.sqlite3")
+        let selection = try StoreFactory.makeStore(
+            configuration: StoreConfiguration(backend: .sqlite, fileURL: fileURL)
+        )
+
+        let environment = AppRuntimeEnvironment(
+            storeSelection: selection,
+            runtimeConnection: .helper(machServiceName: "dev.janneh.test")
+        )
+
+        XCTAssertTrue(environment.supportsRunDispatch)
     }
 
     @MainActor

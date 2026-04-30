@@ -83,4 +83,75 @@ final class RuntimeServiceBoundaryTests: XCTestCase {
         let plan = try RuntimeXPCCodec.decodeResponse(data).dispatchPlan()
         XCTAssertEqual(plan.ready.map(\.id), [task.id])
     }
+
+    func testFallbackRuntimeServiceUsesFallbackWhenPrimaryMatchesPolicy() async throws {
+        let fallbackPlan = DispatchPlan(ready: [], blocked: [], missingRunner: [])
+        let service = FallbackRuntimeService(
+            primary: ThrowingRuntimeService(error: RuntimeXPCClientError.invalidProxy),
+            fallback: StaticRuntimeService(plan: fallbackPlan),
+            shouldFallback: { error in
+                error.localizedDescription == RuntimeXPCClientError.invalidProxy.localizedDescription
+            }
+        )
+
+        let plan = try await service.previewDispatch(projectID: nil)
+
+        XCTAssertEqual(plan, fallbackPlan)
+    }
+}
+
+private struct StaticRuntimeService: RuntimeService {
+    var plan: DispatchPlan
+
+    func previewDispatch(projectID: ProjectID?) async throws -> DispatchPlan {
+        plan
+    }
+
+    func dispatchReady(projectID: ProjectID?) async throws -> DispatchExecution {
+        DispatchExecution(plan: plan, startedRuns: [], failedRuns: [])
+    }
+
+    func cancelRun(taskID: TaskID, runID: RunID) async throws -> RunAttempt {
+        RunAttempt(taskID: taskID, agent: AgentConfiguration(kind: .codex))
+    }
+
+    func retryTask(id taskID: TaskID) async throws -> WorkItem {
+        WorkItem(projectID: ProjectID(rawValue: "project-1"), identifier: "LOCAL-1", title: "Task")
+    }
+
+    func markStalledRuns(olderThan interval: TimeInterval) async throws -> [RunAttempt] {
+        []
+    }
+
+    func resumeRun(taskID: TaskID, runID: RunID) async throws -> RunAttempt {
+        RunAttempt(taskID: taskID, agent: AgentConfiguration(kind: .codex))
+    }
+}
+
+private struct ThrowingRuntimeService: RuntimeService {
+    var error: Error
+
+    func previewDispatch(projectID: ProjectID?) async throws -> DispatchPlan {
+        throw error
+    }
+
+    func dispatchReady(projectID: ProjectID?) async throws -> DispatchExecution {
+        throw error
+    }
+
+    func cancelRun(taskID: TaskID, runID: RunID) async throws -> RunAttempt {
+        throw error
+    }
+
+    func retryTask(id taskID: TaskID) async throws -> WorkItem {
+        throw error
+    }
+
+    func markStalledRuns(olderThan interval: TimeInterval) async throws -> [RunAttempt] {
+        throw error
+    }
+
+    func resumeRun(taskID: TaskID, runID: RunID) async throws -> RunAttempt {
+        throw error
+    }
 }

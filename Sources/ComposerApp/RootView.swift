@@ -59,6 +59,16 @@ struct RootView: View {
 
                 Button {
                     Task {
+                        _ = await model.dispatchReady()
+                    }
+                } label: {
+                    Label("Dispatch Ready", systemImage: "play.fill")
+                }
+                .disabled(model.selectedProject == nil || !model.canDispatchReady)
+                .help("Dispatch Ready")
+
+                Button {
+                    Task {
                         await model.reload()
                     }
                 } label: {

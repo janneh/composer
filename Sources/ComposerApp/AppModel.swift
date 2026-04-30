@@ -24,6 +24,7 @@ final class AppModel: ObservableObject {
     private var reloadTask: Task<Void, Never>?
     private(set) var storageBackend: StoreBackend
     private(set) var storeFileURL: URL
+    private(set) var canDispatchReady: Bool
 
     init(runtimeEnvironment: AppRuntimeEnvironment = .live()) {
         self.runtimeEnvironment = runtimeEnvironment
@@ -32,6 +33,7 @@ final class AppModel: ObservableObject {
         workflowLoader = runtimeEnvironment.workflowLoader
         storageBackend = runtimeEnvironment.storageBackend
         storeFileURL = runtimeEnvironment.storeFileURL
+        canDispatchReady = runtimeEnvironment.supportsRunDispatch
         errorMessage = runtimeEnvironment.startupWarning
         configureStoreWatcher()
     }
@@ -216,6 +218,17 @@ final class AppModel: ObservableObject {
     func dispatchPreview() async -> DispatchPlan? {
         do {
             return try await runtimeService.previewDispatch(projectID: selectedProjectID)
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    func dispatchReady() async -> DispatchExecution? {
+        do {
+            let execution = try await runtimeService.dispatchReady(projectID: selectedProjectID)
+            try await refreshTasks()
+            return execution
         } catch {
             errorMessage = error.localizedDescription
             return nil

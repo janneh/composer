@@ -76,3 +76,11 @@ make install-helper
 ```
 
 It registers the `dev.janneh.composer.runtime` Mach service and uses the same `COMPOSER_STORE_BACKEND` / `COMPOSER_STORE_PATH` environment keys when launched directly.
+
+To route app runtime actions through the helper, launch the app with:
+
+```sh
+COMPOSER_RUNTIME_MODE=helper .build/XcodeDerivedData/Build/Products/Debug/Composer.app/Contents/MacOS/Composer
+```
+
+The app also reads `ComposerRuntimeMode` and `ComposerRuntimeMachService` from app defaults.
