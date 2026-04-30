@@ -1,14 +1,5 @@
 import Foundation
-
-public struct SyncRecordVersion: Codable, Hashable, Sendable {
-    public var revision: String?
-    public var updatedAt: Date?
-
-    public init(revision: String? = nil, updatedAt: Date? = nil) {
-        self.revision = revision
-        self.updatedAt = updatedAt
-    }
-}
+import SymphonyCore
 
 public struct SyncRecordSnapshot<Value: Equatable & Sendable>: Equatable, Sendable {
     public var value: Value?

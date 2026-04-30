@@ -112,6 +112,10 @@ public protocol SyncOutboxTransport: Sendable {
     func push(_ entry: SyncOutboxEntry) async throws -> SyncOutboxReceipt
 }
 
+public protocol SyncCloudTransport: SyncOutboxTransport {
+    func pullChanges(since cursor: SyncCursor?, limit: Int) async throws -> SyncPullBatch
+}
+
 public protocol RuntimeEventSink: Sendable {
     func emit(_ event: RuntimeEvent) async
 }

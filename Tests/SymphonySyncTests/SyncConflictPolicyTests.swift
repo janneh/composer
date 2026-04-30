@@ -1,4 +1,5 @@
 import XCTest
+import SymphonyCore
 @testable import SymphonySync
 
 final class SyncConflictPolicyTests: XCTestCase {

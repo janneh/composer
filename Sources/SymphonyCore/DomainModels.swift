@@ -345,6 +345,78 @@ public struct SyncOutboxReceipt: Codable, Hashable, Sendable {
     }
 }
 
+public struct SyncRecordVersion: Codable, Hashable, Sendable {
+    public var revision: String?
+    public var updatedAt: Date?
+
+    public init(revision: String? = nil, updatedAt: Date? = nil) {
+        self.revision = revision
+        self.updatedAt = updatedAt
+    }
+}
+
+public struct SyncCursor: RawRepresentable, Codable, Hashable, Sendable, ExpressibleByStringLiteral {
+    public var rawValue: String
+
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: StringLiteralType) {
+        self.rawValue = value
+    }
+}
+
+public struct SyncRemoteChange: Identifiable, Codable, Hashable, Sendable {
+    public var id: String
+    public var aggregate: SyncOutboxAggregate
+    public var aggregateID: String
+    public var operation: SyncOutboxOperation
+    public var payload: [String: String]
+    public var version: SyncRecordVersion
+    public var externalReference: String?
+    public var isDeleted: Bool
+    public var receivedAt: Date
+
+    public init(
+        id: String = UUID().uuidString,
+        aggregate: SyncOutboxAggregate,
+        aggregateID: String,
+        operation: SyncOutboxOperation,
+        payload: [String: String] = [:],
+        version: SyncRecordVersion = SyncRecordVersion(),
+        externalReference: String? = nil,
+        isDeleted: Bool = false,
+        receivedAt: Date = Date()
+    ) {
+        self.id = id
+        self.aggregate = aggregate
+        self.aggregateID = aggregateID
+        self.operation = operation
+        self.payload = payload
+        self.version = version
+        self.externalReference = externalReference
+        self.isDeleted = isDeleted
+        self.receivedAt = receivedAt
+    }
+}
+
+public struct SyncPullBatch: Codable, Hashable, Sendable {
+    public var changes: [SyncRemoteChange]
+    public var nextCursor: SyncCursor?
+    public var hasMore: Bool
+
+    public init(
+        changes: [SyncRemoteChange],
+        nextCursor: SyncCursor? = nil,
+        hasMore: Bool = false
+    ) {
+        self.changes = changes
+        self.nextCursor = nextCursor
+        self.hasMore = hasMore
+    }
+}
+
 public struct SyncOutboxEntry: Identifiable, Codable, Hashable, Sendable {
     public var id: String
     public var aggregate: SyncOutboxAggregate

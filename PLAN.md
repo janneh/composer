@@ -32,7 +32,7 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 - `SymphonyGeminiAgent`: Gemini CLI runner behind the generic agent runner protocol.
 - `SymphonyAgents`: planned shared runner protocol support types if `SymphonyInterfaces` grows too large.
 - `SymphonyRuntime`: orchestration state machine, dispatch planning/execution, and normalized agent-event projection.
-- `SymphonySync`: provider-neutral sync outbox processing, retry policy, and conflict resolution policy.
+- `SymphonySync`: provider-neutral sync outbox/cloud exchange processing, retry policy, and conflict resolution policy.
 - `ComposerApp`: SwiftUI macOS app surface.
 - `ComposerCLI`: command-line insertion and editing surface backed by the same local store.
 - `ComposerRuntimeHelper`: LaunchAgent-hosted XPC helper process for runtime service calls.
@@ -97,7 +97,7 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 
 - [x] Define sync outbox processor.
 - [x] Add conflict resolution policy.
-- [ ] Add cloud transport boundary.
+- [x] Add cloud transport boundary.
 - [ ] Add Linear tracker implementation.
 - [ ] Add GitHub Issues tracker implementation.
 
