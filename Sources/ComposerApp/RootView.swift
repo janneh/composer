@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import ComposerStorage
 import SymphonyCore
 import SymphonyInterfaces
 import SymphonyRuntime
@@ -13,17 +14,19 @@ struct RootView: View {
     var body: some View {
         NavigationSplitView {
             SidebarView()
-        } content: {
-            BoardView()
+                .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 280)
         } detail: {
-            InspectorView(task: model.selectedTask)
+            ProjectWorkspaceView()
         }
+        .navigationSplitViewStyle(.balanced)
+        .frame(minWidth: 760, minHeight: 560)
         .toolbar {
-            ToolbarItemGroup {
+            ToolbarItemGroup(placement: .primaryAction) {
                 Button {
                     showingNewProject = true
                 } label: {
                     Label("New Project", systemImage: "folder.badge.plus")
+                        .labelStyle(.iconOnly)
                 }
                 .help("New Project")
 
@@ -31,6 +34,7 @@ struct RootView: View {
                     editingProject = model.selectedProject
                 } label: {
                     Label("Project Settings", systemImage: "slider.horizontal.3")
+                        .labelStyle(.iconOnly)
                 }
                 .disabled(model.selectedProject == nil)
                 .help("Project Settings")
@@ -41,6 +45,7 @@ struct RootView: View {
                     }
                 } label: {
                     Label("New Task", systemImage: "plus")
+                        .labelStyle(.iconOnly)
                 }
                 .disabled(model.selectedProject == nil)
                 .help("New Task")
@@ -53,6 +58,7 @@ struct RootView: View {
                     }
                 } label: {
                     Label("Dispatch Preview", systemImage: "play")
+                        .labelStyle(.iconOnly)
                 }
                 .disabled(model.selectedProject == nil)
                 .help("Dispatch Preview")
@@ -63,6 +69,7 @@ struct RootView: View {
                     }
                 } label: {
                     Label("Dispatch Ready", systemImage: "play.fill")
+                        .labelStyle(.iconOnly)
                 }
                 .disabled(model.selectedProject == nil || !model.canDispatchReady)
                 .help("Dispatch Ready")
@@ -73,6 +80,7 @@ struct RootView: View {
                     }
                 } label: {
                     Label("Refresh", systemImage: "arrow.clockwise")
+                        .labelStyle(.iconOnly)
                 }
                 .help("Refresh")
             }
@@ -414,7 +422,7 @@ private struct SidebarView: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        List(selection: Binding(
+        List(selection: Binding<ProjectID?>(
             get: { model.selectedProjectID },
             set: { newValue in
                 guard let project = model.projects.first(where: { $0.id == newValue }) else {
@@ -427,20 +435,133 @@ private struct SidebarView: View {
         )) {
             Section("Projects") {
                 ForEach(model.projects) { project in
-                    Label(project.name, systemImage: "folder")
+                    SidebarProjectRow(project: project)
                         .tag(project.id)
                 }
             }
-
-            Section("Smart Views") {
-                Label("Ready", systemImage: "play.circle")
-                Label("Running", systemImage: "bolt.circle")
-                Label("Needs Review", systemImage: "checklist")
-                Label("Failed", systemImage: "exclamationmark.triangle")
-                Label("Blocked", systemImage: "nosign")
-            }
         }
         .navigationTitle("Composer")
+        .safeAreaInset(edge: .bottom) {
+            StorageFooterView(backend: model.storageBackend, fileURL: model.storeFileURL)
+        }
+    }
+}
+
+private struct SidebarProjectRow: View {
+    var project: Project
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "folder")
+                .foregroundStyle(.secondary)
+                .frame(width: 16)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(project.name)
+                    .lineLimit(1)
+
+                Text(project.repositoryPath?.abbreviatedPath ?? "No repository")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+private struct StorageFooterView: View {
+    var backend: StoreBackend
+    var fileURL: URL
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label(backend.title, systemImage: "externaldrive")
+                .fontWeight(.medium)
+            Text(fileURL.path.abbreviatedPath)
+                .lineLimit(2)
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.bar)
+    }
+}
+
+private struct ProjectWorkspaceView: View {
+    @EnvironmentObject private var model: AppModel
+
+    var body: some View {
+        Group {
+            if let project = model.selectedProject {
+                GeometryReader { geometry in
+                    VStack(spacing: 0) {
+                        ProjectHeaderView(project: project, taskCount: model.tasks.count)
+
+                        if !model.workflowDiagnostics.isEmpty {
+                            WorkflowDiagnosticsBanner(diagnostics: model.workflowDiagnostics)
+                        }
+
+                        Divider()
+
+                        if geometry.size.width < 860 {
+                            VSplitView {
+                                BoardView()
+                                    .frame(minHeight: 260)
+
+                                InspectorView(task: model.selectedTask)
+                                    .frame(minHeight: 220)
+                            }
+                        } else {
+                            HSplitView {
+                                BoardView()
+                                    .frame(minWidth: 520)
+
+                                InspectorView(task: model.selectedTask)
+                                    .frame(minWidth: 300, idealWidth: 340, maxWidth: 420)
+                            }
+                        }
+                    }
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                }
+            } else {
+                ContentUnavailableView("No Project Selected", systemImage: "folder")
+            }
+        }
+        .background(Color(nsColor: .windowBackgroundColor))
+        .navigationTitle(model.selectedProject?.name ?? "Board")
+    }
+}
+
+private struct ProjectHeaderView: View {
+    var project: Project
+    var taskCount: Int
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(project.name)
+                    .font(.headline)
+                    .lineLimit(1)
+
+                Text(project.repositoryPath?.abbreviatedPath ?? "Set a repository path in Project Settings")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 12)
+
+            Text("\(taskCount) \(taskCount == 1 ? "task" : "tasks")")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.bar)
     }
 }
 
@@ -448,29 +569,17 @@ private struct BoardView: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        Group {
-            if model.selectedProject == nil {
-                ContentUnavailableView("No Project Selected", systemImage: "folder")
-            } else {
-                VStack(spacing: 0) {
-                    if !model.workflowDiagnostics.isEmpty {
-                        WorkflowDiagnosticsBanner(diagnostics: model.workflowDiagnostics)
-                    }
-
-                    ScrollView(.horizontal) {
-                        HStack(alignment: .top, spacing: 12) {
-                            ForEach(WorkState.boardStates) { state in
-                                BoardColumn(state: state, tasks: model.tasks(in: state))
-                                    .frame(width: 280)
-                            }
-                        }
-                        .padding(16)
-                    }
+        ScrollView([.horizontal, .vertical]) {
+            HStack(alignment: .top, spacing: 12) {
+                ForEach(WorkState.boardStates) { state in
+                    BoardColumn(state: state, tasks: model.tasks(in: state))
+                        .frame(width: 260)
                 }
             }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Color(nsColor: .windowBackgroundColor))
-        .navigationTitle(model.selectedProject?.name ?? "Board")
     }
 }
 
@@ -542,7 +651,13 @@ private struct BoardColumn: View {
             }
             .frame(height: 28)
 
-            ScrollView {
+            if tasks.isEmpty {
+                Text("No tasks")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 12)
+            } else {
                 LazyVStack(spacing: 8) {
                     ForEach(tasks) { task in
                         TaskCard(task: task, isSelected: model.selectedTaskID == task.id)
@@ -556,6 +671,7 @@ private struct BoardColumn: View {
             }
         }
         .padding(10)
+        .frame(minHeight: 132, alignment: .top)
         .background(columnBackground)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .dropDestination(for: String.self) { items, _ in
@@ -673,8 +789,11 @@ private struct LabelRow: View {
             ForEach(labels, id: \.self) { label in
                 Text(label)
                     .font(.caption2)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
+                    .frame(maxWidth: 132)
                     .background(Color(nsColor: .quaternaryLabelColor).opacity(0.14))
                     .clipShape(RoundedRectangle(cornerRadius: 5))
             }
@@ -717,6 +836,7 @@ private struct InspectorView: View {
             }
         }
         .frame(minWidth: 280)
+        .background(Color(nsColor: .windowBackgroundColor))
     }
 
     private func draftBinding(for task: WorkItem) -> Binding<TaskDraft> {
@@ -740,6 +860,37 @@ private struct InspectorView: View {
     }
 }
 
+private struct TaskEditorHeader: View {
+    var task: WorkItem
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(task.identifier)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+
+                Text(task.state.title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Spacer(minLength: 8)
+
+                PriorityBadge(priority: task.priority)
+            }
+
+            Text(task.title)
+                .font(.headline)
+                .lineLimit(2)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.bar)
+    }
+}
+
 private struct TaskEditorView: View {
     var task: WorkItem
     var taskCandidates: [WorkItem]
@@ -749,100 +900,106 @@ private struct TaskEditorView: View {
     var onReset: () -> Void
 
     var body: some View {
-        Form {
-            Section("Identity") {
-                TextField("Identifier", text: $draft.identifier)
-                TextField("Title", text: $draft.title)
-            }
+        VStack(spacing: 0) {
+            TaskEditorHeader(task: task)
 
-            Section("Planning") {
-                Picker("State", selection: $draft.state) {
-                    ForEach(WorkState.allCases) { state in
-                        Text(state.title).tag(state)
-                    }
+            Divider()
+
+            Form {
+                Section("Identity") {
+                    TextField("Identifier", text: $draft.identifier)
+                    TextField("Title", text: $draft.title)
                 }
 
-                Picker("Priority", selection: $draft.priority) {
-                    ForEach(WorkPriority.allCases) { priority in
-                        Text(priority.title).tag(priority)
-                    }
-                }
-
-                Picker("Agent", selection: $draft.agentKind) {
-                    Text("Project Default").tag(Optional<AgentKind>.none)
-                    ForEach(AgentKind.allCases) { kind in
-                        Text(kind.title).tag(Optional(kind))
-                    }
-                }
-
-                if draft.agentKind != nil {
-                    TextField("Model", text: $draft.agentModelText)
-                    TextField("Profile", text: $draft.agentProfileText)
-                    TextField("Parameters", text: $draft.agentParametersText)
-                }
-            }
-
-            Section("Description") {
-                TextEditor(text: $draft.description)
-                    .font(.body)
-                    .frame(minHeight: 120)
-            }
-
-            Section("Labels") {
-                TextField("Comma-separated labels", text: $draft.labelsText)
-                LabelRow(labels: draft.labels)
-            }
-
-            Section("Dependencies") {
-                let candidates = dependencyCandidates
-                if candidates.isEmpty {
-                    Text("No available dependencies")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(candidates) { candidate in
-                        Toggle(isOn: dependencyBinding(for: candidate.id)) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(candidate.identifier)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Text(candidate.title)
-                                    .lineLimit(2)
-                            }
+                Section("Planning") {
+                    Picker("State", selection: $draft.state) {
+                        ForEach(WorkState.allCases) { state in
+                            Text(state.title).tag(state)
                         }
-                        .toggleStyle(.checkbox)
+                    }
+
+                    Picker("Priority", selection: $draft.priority) {
+                        ForEach(WorkPriority.allCases) { priority in
+                            Text(priority.title).tag(priority)
+                        }
+                    }
+
+                    Picker("Agent", selection: $draft.agentKind) {
+                        Text("Project Default").tag(Optional<AgentKind>.none)
+                        ForEach(AgentKind.allCases) { kind in
+                            Text(kind.title).tag(Optional(kind))
+                        }
+                    }
+
+                    if draft.agentKind != nil {
+                        TextField("Model", text: $draft.agentModelText)
+                        TextField("Profile", text: $draft.agentProfileText)
+                        TextField("Parameters", text: $draft.agentParametersText)
+                    }
+                }
+
+                Section("Description") {
+                    TextEditor(text: $draft.description)
+                        .font(.body)
+                        .frame(minHeight: 120)
+                }
+
+                Section("Labels") {
+                    TextField("Comma-separated labels", text: $draft.labelsText)
+                    LabelRow(labels: draft.labels)
+                }
+
+                Section("Dependencies") {
+                    let candidates = dependencyCandidates
+                    if candidates.isEmpty {
+                        Text("No available dependencies")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(candidates) { candidate in
+                            Toggle(isOn: dependencyBinding(for: candidate.id)) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(candidate.identifier)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text(candidate.title)
+                                        .lineLimit(2)
+                                }
+                            }
+                            .toggleStyle(.checkbox)
+                        }
+                    }
+                }
+
+                Section("Events") {
+                    if events.isEmpty {
+                        Text("No events")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(events) { event in
+                            RuntimeEventRow(event: event)
+                        }
+                    }
+                }
+
+                Section {
+                    HStack {
+                        Button("Revert") {
+                            onReset()
+                        }
+                        .disabled(!draft.hasChanges(from: task))
+
+                        Spacer()
+
+                        Button("Save") {
+                            onSave(draft.apply(to: task))
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(!draft.isValid || !draft.hasChanges(from: task))
                     }
                 }
             }
-
-            Section("Events") {
-                if events.isEmpty {
-                    Text("No events")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(events) { event in
-                        RuntimeEventRow(event: event)
-                    }
-                }
-            }
-
-            Section {
-                HStack {
-                    Button("Revert") {
-                        onReset()
-                    }
-                    .disabled(!draft.hasChanges(from: task))
-
-                    Spacer()
-
-                    Button("Save") {
-                        onSave(draft.apply(to: task))
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!draft.isValid || !draft.hasChanges(from: task))
-                }
-            }
+            .formStyle(.grouped)
         }
-        .formStyle(.grouped)
     }
 
     private var dependencyCandidates: [WorkItem] {
@@ -1081,6 +1238,14 @@ private struct FlowLayout: Layout {
 }
 
 private extension String {
+    var abbreviatedPath: String {
+        let home = NSHomeDirectory()
+        if hasPrefix(home) {
+            return "~" + dropFirst(home.count)
+        }
+        return self
+    }
+
     var nilIfEmpty: String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
@@ -1100,6 +1265,17 @@ private extension String {
                 }
                 result[key] = value
             }
+    }
+}
+
+private extension StoreBackend {
+    var title: String {
+        switch self {
+        case .json:
+            "JSON Store"
+        case .sqlite:
+            "SQLite Store"
+        }
     }
 }
 

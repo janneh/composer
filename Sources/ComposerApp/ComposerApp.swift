@@ -13,6 +13,7 @@ struct ComposerApp: App {
                 }
         }
         .windowStyle(.titleBar)
+        .defaultSize(width: 1280, height: 760)
         .commands {
             CommandMenu("Task") {
                 Button("New Task") {
