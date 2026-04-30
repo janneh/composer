@@ -106,7 +106,14 @@ final class SQLiteStoreTests: XCTestCase {
         let project = Project(id: ProjectID(rawValue: "project-1"), name: "Composer")
         let task = WorkItem(id: TaskID(rawValue: "task-1"), projectID: project.id, identifier: "LOCAL-1", title: "Task")
         let run = RunAttempt(id: RunID(rawValue: "run-1"), taskID: task.id, agent: AgentConfiguration(kind: .codex))
-        let event = RuntimeEvent(id: "event-1", taskID: task.id, runID: run.id, kind: .runQueued, message: "Queued")
+        let event = RuntimeEvent(
+            id: "event-1",
+            taskID: task.id,
+            runID: run.id,
+            kind: .runQueued,
+            message: "Queued",
+            createdAt: Date(timeIntervalSince1970: 100)
+        )
 
         try await store.upsertProject(project)
         try await store.upsertTask(task)
@@ -122,7 +129,30 @@ final class SQLiteStoreTests: XCTestCase {
         XCTAssertNil(persistedProject)
         XCTAssertNil(persistedTask)
         XCTAssertEqual(runs, [])
-        XCTAssertEqual(events, [])
+        XCTAssertEqual(events, [event])
+    }
+
+    func testEventLogAllowsRepeatedEventIDsAndPreservesAppendOrder() async throws {
+        let store = try makeStore()
+        let date = Date(timeIntervalSince1970: 100)
+        let first = RuntimeEvent(
+            id: "event-1",
+            kind: .taskUpdated,
+            message: "First",
+            createdAt: date
+        )
+        let second = RuntimeEvent(
+            id: "event-1",
+            kind: .taskUpdated,
+            message: "Second",
+            createdAt: date
+        )
+
+        try await store.appendEvent(first)
+        try await store.appendEvent(second)
+
+        let events = try await store.listEvents(taskID: nil, limit: 10)
+        XCTAssertEqual(events.map(\.message), ["Second", "First"])
     }
 
     private func makeStore() throws -> SQLiteStore {

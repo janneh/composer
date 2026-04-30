@@ -194,7 +194,7 @@ public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore {
 
     public func appendEvent(_ event: RuntimeEvent) async throws {
         let sql = """
-        INSERT INTO events (id, task_id, run_id, kind, created_at, json)
+        INSERT INTO event_log (id, task_id, run_id, kind, created_at, json)
         VALUES (?, ?, ?, ?, ?, ?)
         """
 
@@ -217,9 +217,9 @@ public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore {
         if let taskID {
             return try readRows(
                 """
-                SELECT json FROM events
+                SELECT json FROM event_log
                 WHERE task_id = ?
-                ORDER BY created_at DESC
+                ORDER BY created_at DESC, sequence DESC
                 LIMIT ?
                 """
             ) { statement in
@@ -231,7 +231,7 @@ public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore {
         }
 
         return try readRows(
-            "SELECT json FROM events ORDER BY created_at DESC LIMIT ?"
+            "SELECT json FROM event_log ORDER BY created_at DESC, sequence DESC LIMIT ?"
         ) { statement in
             try bind(clampedLimit, to: 1, in: statement)
         } decode: { statement in
@@ -253,10 +253,15 @@ public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore {
     private static func migrate(database: OpaquePointer) throws {
         try execute("PRAGMA foreign_keys = ON", database: database)
         let version = try userVersion(database: database)
-        guard version < 1 else {
-            return
+        if version < 1 {
+            try migrateToVersion1(database: database)
         }
+        if version < 2 {
+            try migrateToVersion2(database: database)
+        }
+    }
 
+    private static func migrateToVersion1(database: OpaquePointer) throws {
         try execute("BEGIN IMMEDIATE", database: database)
         do {
             try execute("""
@@ -314,6 +319,39 @@ public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore {
             try execute("CREATE INDEX IF NOT EXISTS idx_events_task_created ON events(task_id, created_at DESC)", database: database)
             try execute("CREATE INDEX IF NOT EXISTS idx_events_created ON events(created_at DESC)", database: database)
             try execute("PRAGMA user_version = 1", database: database)
+            try execute("COMMIT", database: database)
+        } catch {
+            try? execute("ROLLBACK", database: database)
+            throw error
+        }
+    }
+
+    private static func migrateToVersion2(database: OpaquePointer) throws {
+        try execute("BEGIN IMMEDIATE", database: database)
+        do {
+            try execute("""
+            CREATE TABLE IF NOT EXISTS event_log (
+              sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+              id TEXT NOT NULL,
+              task_id TEXT,
+              run_id TEXT,
+              kind TEXT NOT NULL,
+              created_at REAL NOT NULL,
+              json BLOB NOT NULL
+            )
+            """, database: database)
+            try execute("CREATE INDEX IF NOT EXISTS idx_event_log_task_created ON event_log(task_id, created_at DESC, sequence DESC)", database: database)
+            try execute("CREATE INDEX IF NOT EXISTS idx_event_log_created ON event_log(created_at DESC, sequence DESC)", database: database)
+            try execute("""
+            INSERT INTO event_log (id, task_id, run_id, kind, created_at, json)
+            SELECT id, task_id, run_id, kind, created_at, json
+            FROM events
+            WHERE NOT EXISTS (
+              SELECT 1 FROM event_log WHERE event_log.id = events.id
+            )
+            ORDER BY created_at ASC
+            """, database: database)
+            try execute("PRAGMA user_version = 2", database: database)
             try execute("COMMIT", database: database)
         } catch {
             try? execute("ROLLBACK", database: database)
