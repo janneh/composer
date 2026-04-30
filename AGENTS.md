@@ -93,6 +93,7 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 - `SymphonyRuntime.AgentRunEventProjection` maps provider-neutral agent events into persisted runtime events and run status updates.
 - `SymphonyRuntime.Orchestrator` also owns run cancellation, retry requeueing, stalled-run marking, and resume dispatch for runners that advertise resume support.
 - Project defaults and task preferred agents can carry provider kind, model, profile, and string parameters; keep provider-specific interpretation inside provider packages.
+- `AppRuntimeEnvironment` owns app-edge storage/orchestrator composition; keep SwiftUI app lifecycle code focused on window/model setup.
 - `SymphonyCodexAgent.CodexAgentRunner` wraps `codex exec --json` and maps JSONL output into normalized `AgentRunEvent` values.
 - `SymphonyClaudeAgent.ClaudeAgentRunner` wraps `claude --print --output-format stream-json` and maps stream output into normalized `AgentRunEvent` values.
 - `SymphonyGeminiAgent.GeminiAgentRunner` wraps `gemini --prompt` and maps process output into normalized `AgentRunEvent` values.

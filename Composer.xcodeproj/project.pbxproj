@@ -50,6 +50,7 @@
 		000000000000000000000135 /* SymphonyWorkflow.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000047 /* SymphonyWorkflow.framework */; };
 		000000000000000000000136 /* SymphonyWorkflow.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 000000000000000000000047 /* SymphonyWorkflow.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		000000000000000000000137 /* WorkflowPromptRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000000F /* WorkflowPromptRenderer.swift */; };
+		000000000000000000000138 /* AppRuntimeEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000010 /* AppRuntimeEnvironment.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -109,6 +110,7 @@
 		00000000000000000000000D /* WorkflowLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkflowLoader.swift; sourceTree = "<group>"; };
 		00000000000000000000000E /* WorkflowParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkflowParser.swift; sourceTree = "<group>"; };
 		00000000000000000000000F /* WorkflowPromptRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkflowPromptRenderer.swift; sourceTree = "<group>"; };
+		000000000000000000000010 /* AppRuntimeEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRuntimeEnvironment.swift; sourceTree = "<group>"; };
 		000000000000000000000040 /* Composer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Composer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000000000041 /* SymphonyCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SymphonyCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000000000042 /* SymphonyInterfaces.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SymphonyInterfaces.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -173,6 +175,7 @@
 			isa = PBXGroup;
 			children = (
 				000000000000000000000006 /* ComposerApp.swift */,
+				000000000000000000000010 /* AppRuntimeEnvironment.swift */,
 				000000000000000000000007 /* AppModel.swift */,
 				00000000000000000000000C /* AppStorageConfiguration.swift */,
 				000000000000000000000008 /* RootView.swift */,
@@ -378,7 +381,7 @@
 		000000000000000000000802 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000103 /* Ports.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
 		000000000000000000000803 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000104 /* LocalJSONStore.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
 		000000000000000000000804 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000105 /* Orchestrator.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
-		000000000000000000000805 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000106 /* ComposerApp.swift in Sources */, 000000000000000000000107 /* AppModel.swift in Sources */, 000000000000000000000130 /* AppStorageConfiguration.swift in Sources */, 000000000000000000000108 /* RootView.swift in Sources */, 000000000000000000000109 /* StoreFileWatcher.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
+		000000000000000000000805 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000106 /* ComposerApp.swift in Sources */, 000000000000000000000138 /* AppRuntimeEnvironment.swift in Sources */, 000000000000000000000107 /* AppModel.swift in Sources */, 000000000000000000000130 /* AppStorageConfiguration.swift in Sources */, 000000000000000000000108 /* RootView.swift in Sources */, 000000000000000000000109 /* StoreFileWatcher.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
 		000000000000000000000806 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000124 /* SQLiteStore.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
 		000000000000000000000807 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000125 /* StoreFactory.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };
 		000000000000000000000808 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000131 /* WorkflowLoader.swift in Sources */, 000000000000000000000132 /* WorkflowParser.swift in Sources */, 000000000000000000000137 /* WorkflowPromptRenderer.swift in Sources */, ); runOnlyForDeploymentPostprocessing = 0; };

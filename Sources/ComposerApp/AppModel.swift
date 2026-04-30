@@ -16,6 +16,7 @@ final class AppModel: ObservableObject {
     @Published var selectedTaskID: TaskID?
     @Published var errorMessage: String?
 
+    private let runtimeEnvironment: AppRuntimeEnvironment
     private let store: any ComposerStore
     private let orchestrator: Orchestrator
     private let workflowLoader: WorkflowLoader
@@ -24,24 +25,19 @@ final class AppModel: ObservableObject {
     private(set) var storageBackend: StoreBackend
     private(set) var storeFileURL: URL
 
-    init(storeSelection: StoreSelection? = nil, workflowLoader: WorkflowLoader = WorkflowLoader()) {
-        let resolvedSelection = storeSelection.map { ($0, nil) } ?? Self.makeStoreSelection()
-        let selection = resolvedSelection.0
-        store = selection.store
-        self.workflowLoader = workflowLoader
-        storageBackend = selection.backend
-        storeFileURL = selection.fileURL
-        errorMessage = resolvedSelection.1
-        orchestrator = Orchestrator(
-            taskStore: selection.store,
-            projectStore: selection.store,
-            runners: [
-                NoopAgentRunner(kind: .codex),
-                NoopAgentRunner(kind: .claude),
-                NoopAgentRunner(kind: .gemini)
-            ]
-        )
+    init(runtimeEnvironment: AppRuntimeEnvironment = .live()) {
+        self.runtimeEnvironment = runtimeEnvironment
+        store = runtimeEnvironment.store
+        orchestrator = runtimeEnvironment.orchestrator
+        workflowLoader = runtimeEnvironment.workflowLoader
+        storageBackend = runtimeEnvironment.storageBackend
+        storeFileURL = runtimeEnvironment.storeFileURL
+        errorMessage = runtimeEnvironment.startupWarning
         configureStoreWatcher()
+    }
+
+    convenience init(storeSelection: StoreSelection, workflowLoader: WorkflowLoader = WorkflowLoader()) {
+        self.init(runtimeEnvironment: AppRuntimeEnvironment(storeSelection: storeSelection, workflowLoader: workflowLoader))
     }
 
     var selectedProject: Project? {
@@ -226,37 +222,15 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private static func makeStoreSelection() -> (StoreSelection, String?) {
-        do {
-            let configuration = try AppStorageConfiguration.fromLaunchConfiguration()
-            return (try StoreFactory.makeStore(configuration: configuration.storeConfiguration), nil)
-        } catch {
-            let fallback = FileManager.default.temporaryDirectory
-                .appendingPathComponent("Composer-local-store.json")
-            do {
-                let selection = try StoreFactory.makeStore(
-                    configuration: StoreConfiguration(backend: .json, fileURL: fallback)
-                )
-                return (
-                    selection,
-                    "Storage configuration failed: \(error.localizedDescription). Using \(fallback.path)."
-                )
-            } catch {
-                preconditionFailure("Could not create fallback Composer store: \(error.localizedDescription)")
-            }
-        }
-    }
-
     private func configureStoreWatcher() {
         storeChangeTask?.cancel()
-        guard storageBackend == .json else {
+        guard let storeChanges = runtimeEnvironment.storeChanges() else {
             return
         }
 
-        let fileURL = storeFileURL
         storeChangeTask = Task { [weak self] in
             do {
-                for try await _ in StoreFileWatcher.changes(fileURL: fileURL) {
+                for try await _ in storeChanges {
                     guard !Task.isCancelled else {
                         return
                     }

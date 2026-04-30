@@ -49,6 +49,19 @@ final class AppStorageConfigurationTests: XCTestCase {
         XCTAssertEqual(configuration.fileURL?.path, "/tmp/env-store.sqlite3")
     }
 
+    func testRuntimeEnvironmentComposesStoreAndOrchestrator() throws {
+        let fileURL = temporaryDirectory().appendingPathComponent("runtime.sqlite3")
+        let selection = try StoreFactory.makeStore(
+            configuration: StoreConfiguration(backend: .sqlite, fileURL: fileURL)
+        )
+
+        let environment = AppRuntimeEnvironment(storeSelection: selection)
+
+        XCTAssertEqual(environment.storageBackend, .sqlite)
+        XCTAssertEqual(environment.storeFileURL, fileURL)
+        XCTAssertNil(environment.storeChanges())
+    }
+
     @MainActor
     func testAppModelCanUseSQLiteStoreSelection() async throws {
         let fileURL = temporaryDirectory().appendingPathComponent("app.sqlite3")
