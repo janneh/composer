@@ -17,6 +17,7 @@ The first implementation keeps the important boundaries generic:
 - `SymphonyCodexAgent`: Codex CLI runner implementation behind the generic `AgentRunner` protocol.
 - `SymphonyClaudeAgent`: Claude Code CLI runner implementation behind the generic `AgentRunner` protocol.
 - `SymphonyGeminiAgent`: Gemini CLI runner implementation behind the generic `AgentRunner` protocol.
+- `SymphonyLinearTracker`: Linear GraphQL adapter behind the generic `TrackerClient` protocol.
 - `ComposerStorage`: app/CLI storage composition and backend selection.
 - `SymphonyRuntime`: dispatch planning/execution, run control, runtime service/XPC boundary types, and normalized agent-event projection across stores, workflow providers, workspace providers, and agent runners. It depends on interfaces, not concrete providers.
 - `SymphonySync`: provider-neutral sync outbox/cloud exchange processing and conflict resolution policy with transport and store protocols.

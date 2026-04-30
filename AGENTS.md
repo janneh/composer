@@ -31,6 +31,7 @@ The repository is licensed under Apache-2.0.
 - `SymphonyCodexAgent`: Codex CLI runner implementation behind the generic agent runner protocol.
 - `SymphonyClaudeAgent`: Claude Code CLI runner implementation behind the generic agent runner protocol.
 - `SymphonyGeminiAgent`: Gemini CLI runner implementation behind the generic agent runner protocol.
+- `SymphonyLinearTracker`: Linear GraphQL tracker adapter behind the generic tracker protocol.
 - `ComposerApp`: SwiftUI macOS UI.
 - `ComposerCLI`: `composerctl` command-line surface for inserting projects/tasks into the same local store as the app.
 - `ComposerRuntimeHelper`: SwiftPM-built LaunchAgent helper executable hosting the runtime XPC service.
@@ -105,6 +106,7 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 - `SymphonySync.SyncOutboxProcessor` works only through `SyncOutboxStore` and `SyncOutboxTransport`; concrete cloud/tracker transports should stay outside core app/runtime code.
 - `SymphonySync.SyncConflictPolicy` resolves provider-neutral local/base/remote snapshots; provider adapters should translate remote revisions into `SyncRecordVersion` without leaking provider types into the app.
 - `SyncCloudTransport` is the provider-neutral pull/push boundary for hosted sync and external tracker adapters.
+- `SymphonyLinearTracker.LinearTrackerClient` maps Linear GraphQL issues into `WorkItem` values behind `TrackerClient`; do not import it from UI or runtime code directly.
 - Project defaults and task preferred agents can carry provider kind, model, profile, and string parameters; keep provider-specific interpretation inside provider packages.
 - `AppRuntimeEnvironment` owns app-edge storage/orchestrator composition; keep SwiftUI app lifecycle code focused on window/model setup.
 - `SymphonyCodexAgent.CodexAgentRunner` wraps `codex exec --json` and maps JSONL output into normalized `AgentRunEvent` values.

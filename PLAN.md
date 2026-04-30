@@ -30,6 +30,7 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 - `SymphonyCodexAgent`: Codex CLI runner behind the generic agent runner protocol.
 - `SymphonyClaudeAgent`: Claude Code CLI runner behind the generic agent runner protocol.
 - `SymphonyGeminiAgent`: Gemini CLI runner behind the generic agent runner protocol.
+- `SymphonyLinearTracker`: Linear GraphQL tracker adapter behind the generic tracker protocol.
 - `SymphonyAgents`: planned shared runner protocol support types if `SymphonyInterfaces` grows too large.
 - `SymphonyRuntime`: orchestration state machine, dispatch planning/execution, and normalized agent-event projection.
 - `SymphonySync`: provider-neutral sync outbox/cloud exchange processing, retry policy, and conflict resolution policy.
@@ -98,7 +99,7 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 - [x] Define sync outbox processor.
 - [x] Add conflict resolution policy.
 - [x] Add cloud transport boundary.
-- [ ] Add Linear tracker implementation.
+- [x] Add Linear tracker implementation.
 - [ ] Add GitHub Issues tracker implementation.
 
 ## Current Focus
