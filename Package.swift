@@ -24,6 +24,7 @@ let package = Package(
         .library(name: "SymphonyCodexAgent", targets: ["SymphonyCodexAgent"]),
         .library(name: "SymphonyClaudeAgent", targets: ["SymphonyClaudeAgent"]),
         .library(name: "SymphonyGeminiAgent", targets: ["SymphonyGeminiAgent"]),
+        .library(name: "SymphonyGitHubIssuesTracker", targets: ["SymphonyGitHubIssuesTracker"]),
         .library(name: "SymphonyLinearTracker", targets: ["SymphonyLinearTracker"])
     ],
     targets: [
@@ -69,6 +70,10 @@ let package = Package(
         ),
         .target(
             name: "SymphonyGeminiAgent",
+            dependencies: ["SymphonyCore", "SymphonyInterfaces"]
+        ),
+        .target(
+            name: "SymphonyGitHubIssuesTracker",
             dependencies: ["SymphonyCore", "SymphonyInterfaces"]
         ),
         .target(
@@ -155,6 +160,10 @@ let package = Package(
         .testTarget(
             name: "SymphonyGeminiAgentTests",
             dependencies: ["SymphonyCore", "SymphonyGeminiAgent"]
+        ),
+        .testTarget(
+            name: "SymphonyGitHubIssuesTrackerTests",
+            dependencies: ["SymphonyCore", "SymphonyGitHubIssuesTracker"]
         ),
         .testTarget(
             name: "SymphonyLinearTrackerTests",
