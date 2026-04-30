@@ -45,6 +45,8 @@ Xcode framework targets used by the app must keep `LD_DYLIB_INSTALL_NAME` set to
 
 ## Planned Packages
 
+No packages are currently planned in this milestone. Add new provider or runtime packages here when the next roadmap introduces them.
+
 ## Build And Test
 
 Use `make` for normal development commands. The Makefile keeps SwiftPM and Clang caches inside `.build` because sandboxed agent sessions may not be able to write caches under the user home directory.

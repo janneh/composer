@@ -105,4 +105,4 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 
 ## Current Focus
 
-Build the provider-neutral sync and external tracker boundaries.
+All roadmap items in this plan are implemented. Define the next milestone before adding new provider, runtime, or sync work.
