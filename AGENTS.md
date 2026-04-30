@@ -96,6 +96,7 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 - `ComposerApp` consumes an `AsyncThrowingStream` of JSON store file changes so `composerctl` JSON updates are reflected without restarting the app. SQLite app refresh is currently explicit/in-process.
 - `SymphonyWorkflow.WorkflowLoader` resolves explicit workflow paths first, otherwise uses `WORKFLOW.md` under the project repository path.
 - Workflow front matter supports a conservative `key: value` subset with strings, booleans, integers, doubles, and inline string lists.
+- `WorkflowPromptRenderer` renders the `WORKFLOW.md` body as a strict Liquid-compatible template subset with `issue`, `task`, `attempt`, `run`, and `project` variables; unknown variables and filters are errors.
 - `ComposerApp` publishes selected-project workflow diagnostics from `WorkflowLoader` and shows them above the board.
 - `SymphonyWorkflow.FileWorkflowProvider` adapts loaded workflow documents to the generic `WorkflowProvider` prompt interface.
 - `RunAttempt.workspace` tracks the prepared workspace path, cleanup policy, and preparation time.
