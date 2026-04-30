@@ -11,7 +11,7 @@ The first implementation keeps the important boundaries generic:
 - `SymphonyCore`: provider-neutral domain models for projects, work items, runs, agents, and runtime events.
 - `SymphonyInterfaces`: protocol boundaries for storage, trackers, workflow loading, workspaces, agent runners, sync, and event sinks.
 - `SymphonyLocalStore`: a local JSON-backed store selectable by the app and CLI.
-- `SymphonySQLiteStore`: a durable SQLite-backed store with versioned schema setup, indexed queries, append-only runtime events, sync metadata tables, and JSON payload preservation.
+- `SymphonySQLiteStore`: a durable SQLite-backed store with versioned schema setup, indexed queries, full-text task search, append-only runtime events, sync metadata tables, and JSON payload preservation.
 - `SymphonyWorkflow`: `WORKFLOW.md` discovery, loading, Markdown front matter parsing, UI diagnostics, and prompt rendering.
 - `SymphonyWorkspace`: local per-task workspace preparation backed by Git worktrees, with cleanup policy metadata on runs.
 - `SymphonyCodexAgent`: Codex CLI runner implementation behind the generic `AgentRunner` protocol.

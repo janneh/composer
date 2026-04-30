@@ -22,7 +22,7 @@ The repository is licensed under Apache-2.0.
 - `SymphonyCore`: provider-neutral domain models and identifiers.
 - `SymphonyInterfaces`: ports/protocols for stores, trackers, workflow, workspace, agents, sync, and runtime events.
 - `SymphonyLocalStore`: local JSON store for initial development and tests.
-- `SymphonySQLiteStore`: durable SQLite store conforming to the same store protocols. It preserves full domain objects as JSON payloads plus indexed columns for queries, stores runtime events in an append-only event log, and persists sync outbox/metadata/cursor tables.
+- `SymphonySQLiteStore`: durable SQLite store conforming to the same store protocols. It preserves full domain objects as JSON payloads plus indexed columns for queries, maintains full-text task search, stores runtime events in an append-only event log, and persists sync outbox/metadata/cursor tables.
 - `ComposerStorage`: edge-level storage factory for choosing JSON or SQLite while returning protocol-shaped stores.
 - `SymphonyWorkflow`: `WORKFLOW.md` discovery/loading, Markdown front matter parsing, UI diagnostics, and prompt rendering.
 - `SymphonyWorkspace`: local workspace provider that prepares per-task Git worktrees and returns cleanup policy metadata behind the generic workspace protocol.
@@ -117,4 +117,5 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 - User-visible edits should append runtime events where useful so later sync has a clear mutation history.
 - SQLite runtime events are append-only and should not be cascaded away with task/project deletion.
 - SQLite sync metadata lives behind `SyncOutboxStore` and `SyncMetadataStore`; sync processors should use those protocols rather than SQLite-specific APIs.
+- Full-text task search lives behind `SearchStore`; keep callers on the protocol instead of SQLite FTS details.
 - Keep SwiftUI views focused on presentation; move provider/runtime behavior into packages as it grows.

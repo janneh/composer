@@ -3,7 +3,7 @@ import SQLite3
 import SymphonyCore
 import SymphonyInterfaces
 
-public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore, SyncOutboxStore, SyncMetadataStore {
+public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore, SearchStore, SyncOutboxStore, SyncMetadataStore {
     public nonisolated let fileURL: URL
 
     private var database: OpaquePointer?
@@ -81,6 +81,7 @@ public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore, SyncOut
     }
 
     public func deleteProject(id: ProjectID) async throws {
+        try deleteTaskSearchDocuments(projectID: id)
         try write("DELETE FROM projects WHERE id = ?") { statement in
             try bind(id.rawValue, to: 1, in: statement)
         }
@@ -140,9 +141,11 @@ public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore, SyncOut
             try bind(task.updatedAt, to: 7, in: statement)
             try bindEncoded(task, to: 8, in: statement)
         }
+        try upsertTaskSearchDocument(task)
     }
 
     public func deleteTask(id: TaskID) async throws {
+        try deleteTaskSearchDocument(id: id)
         try write("DELETE FROM tasks WHERE id = ?") { statement in
             try bind(id.rawValue, to: 1, in: statement)
         }
@@ -236,6 +239,47 @@ public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore, SyncOut
             try bind(clampedLimit, to: 1, in: statement)
         } decode: { statement in
             try decode(RuntimeEvent.self, fromColumn: 0, in: statement)
+        }
+    }
+
+    public func searchTasks(query: String, projectID: ProjectID?, limit: Int) async throws -> [WorkItem] {
+        let clampedLimit = max(0, limit)
+        let matchQuery = SQLiteStore.ftsMatchQuery(for: query)
+        guard clampedLimit > 0, !matchQuery.isEmpty else {
+            return []
+        }
+
+        if let projectID {
+            return try readRows(
+                """
+                SELECT tasks.json FROM task_search
+                JOIN tasks ON tasks.id = task_search.task_id
+                WHERE task_search MATCH ? AND task_search.project_id = ?
+                ORDER BY bm25(task_search), tasks.updated_at DESC
+                LIMIT ?
+                """
+            ) { statement in
+                try bind(matchQuery, to: 1, in: statement)
+                try bind(projectID.rawValue, to: 2, in: statement)
+                try bind(clampedLimit, to: 3, in: statement)
+            } decode: { statement in
+                try decode(WorkItem.self, fromColumn: 0, in: statement)
+            }
+        }
+
+        return try readRows(
+            """
+            SELECT tasks.json FROM task_search
+            JOIN tasks ON tasks.id = task_search.task_id
+            WHERE task_search MATCH ?
+            ORDER BY bm25(task_search), tasks.updated_at DESC
+            LIMIT ?
+            """
+        ) { statement in
+            try bind(matchQuery, to: 1, in: statement)
+            try bind(clampedLimit, to: 2, in: statement)
+        } decode: { statement in
+            try decode(WorkItem.self, fromColumn: 0, in: statement)
         }
     }
 
@@ -399,6 +443,9 @@ public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore, SyncOut
         if version < 3 {
             try migrateToVersion3(database: database)
         }
+        if version < 4 {
+            try migrateToVersion4(database: database)
+        }
     }
 
     private static func migrateToVersion1(database: OpaquePointer) throws {
@@ -556,6 +603,84 @@ public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore, SyncOut
         }
     }
 
+    private static func migrateToVersion4(database: OpaquePointer) throws {
+        try execute("BEGIN IMMEDIATE", database: database)
+        do {
+            try execute("""
+            CREATE VIRTUAL TABLE IF NOT EXISTS task_search USING fts5(
+              task_id UNINDEXED,
+              project_id UNINDEXED,
+              identifier,
+              title,
+              description,
+              labels
+            )
+            """, database: database)
+            try backfillTaskSearchIndex(database: database)
+            try execute("PRAGMA user_version = 4", database: database)
+            try execute("COMMIT", database: database)
+        } catch {
+            try? execute("ROLLBACK", database: database)
+            throw error
+        }
+    }
+
+    private static func backfillTaskSearchIndex(database: OpaquePointer) throws {
+        let selectSQL = """
+        SELECT json FROM tasks
+        WHERE NOT EXISTS (
+          SELECT 1 FROM task_search WHERE task_search.task_id = tasks.id
+        )
+        """
+        var selectStatement: OpaquePointer?
+        guard sqlite3_prepare_v2(database, selectSQL, -1, &selectStatement, nil) == SQLITE_OK,
+              let selectStatement else {
+            throw SQLiteStoreError.statementFailed(selectSQL, errorMessage(database))
+        }
+        defer {
+            sqlite3_finalize(selectStatement)
+        }
+
+        let insertSQL = """
+        INSERT INTO task_search (task_id, project_id, identifier, title, description, labels)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """
+        var insertStatement: OpaquePointer?
+        guard sqlite3_prepare_v2(database, insertSQL, -1, &insertStatement, nil) == SQLITE_OK,
+              let insertStatement else {
+            throw SQLiteStoreError.statementFailed(insertSQL, errorMessage(database))
+        }
+        defer {
+            sqlite3_finalize(insertStatement)
+        }
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+
+        while true {
+            let result = sqlite3_step(selectStatement)
+            switch result {
+            case SQLITE_ROW:
+                let task = try decodeMigrationTask(fromColumn: 0, in: selectStatement, decoder: decoder)
+                try bind(task.id.rawValue, to: 1, in: insertStatement, database: database)
+                try bind(task.projectID.rawValue, to: 2, in: insertStatement, database: database)
+                try bind(task.identifier, to: 3, in: insertStatement, database: database)
+                try bind(task.title, to: 4, in: insertStatement, database: database)
+                try bind(task.description, to: 5, in: insertStatement, database: database)
+                try bind(task.labels.joined(separator: " "), to: 6, in: insertStatement, database: database)
+                guard sqlite3_step(insertStatement) == SQLITE_DONE else {
+                    throw SQLiteStoreError.statementFailed(insertSQL, errorMessage(database))
+                }
+                sqlite3_reset(insertStatement)
+                sqlite3_clear_bindings(insertStatement)
+            case SQLITE_DONE:
+                return
+            default:
+                throw SQLiteStoreError.statementFailed(selectSQL, errorMessage(database))
+            }
+        }
+    }
+
     private static func userVersion(database: OpaquePointer) throws -> Int {
         let sql = "PRAGMA user_version"
         var statement: OpaquePointer?
@@ -685,6 +810,35 @@ public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore, SyncOut
         try bindEncoded(entry, to: 12, in: statement)
     }
 
+    private func upsertTaskSearchDocument(_ task: WorkItem) throws {
+        try deleteTaskSearchDocument(id: task.id)
+        try write(
+            """
+            INSERT INTO task_search (task_id, project_id, identifier, title, description, labels)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """
+        ) { statement in
+            try bind(task.id.rawValue, to: 1, in: statement)
+            try bind(task.projectID.rawValue, to: 2, in: statement)
+            try bind(task.identifier, to: 3, in: statement)
+            try bind(task.title, to: 4, in: statement)
+            try bind(task.description, to: 5, in: statement)
+            try bind(task.labels.joined(separator: " "), to: 6, in: statement)
+        }
+    }
+
+    private func deleteTaskSearchDocument(id: TaskID) throws {
+        try write("DELETE FROM task_search WHERE task_id = ?") { statement in
+            try bind(id.rawValue, to: 1, in: statement)
+        }
+    }
+
+    private func deleteTaskSearchDocuments(projectID: ProjectID) throws {
+        try write("DELETE FROM task_search WHERE project_id = ?") { statement in
+            try bind(projectID.rawValue, to: 1, in: statement)
+        }
+    }
+
     private func bind(_ value: String?, to index: Int32, in statement: OpaquePointer) throws {
         let result: Int32
         if let value {
@@ -744,6 +898,35 @@ public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore, SyncOut
 
     private static var transientDestructor: sqlite3_destructor_type {
         unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+    }
+
+    private static func bind(_ value: String, to index: Int32, in statement: OpaquePointer, database: OpaquePointer) throws {
+        guard sqlite3_bind_text(statement, index, value, -1, transientDestructor) == SQLITE_OK else {
+            throw SQLiteStoreError.bindFailed(errorMessage(database))
+        }
+    }
+
+    private static func decodeMigrationTask(
+        fromColumn column: Int32,
+        in statement: OpaquePointer,
+        decoder: JSONDecoder
+    ) throws -> WorkItem {
+        let byteCount = Int(sqlite3_column_bytes(statement, column))
+        guard let bytes = sqlite3_column_blob(statement, column) else {
+            throw SQLiteStoreError.decodeFailed
+        }
+
+        let data = Data(bytes: bytes, count: byteCount)
+        return try decoder.decode(WorkItem.self, from: data)
+    }
+
+    private static func ftsMatchQuery(for rawQuery: String) -> String {
+        rawQuery
+            .split(whereSeparator: { $0.isWhitespace })
+            .map { term in
+                "\"\(term.replacingOccurrences(of: "\"", with: "\"\""))\""
+            }
+            .joined(separator: " ")
     }
 
     private static func errorMessage(_ database: OpaquePointer?) -> String {

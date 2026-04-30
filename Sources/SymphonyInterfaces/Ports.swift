@@ -27,6 +27,10 @@ public protocol EventStore: Sendable {
     func listEvents(taskID: TaskID?, limit: Int) async throws -> [RuntimeEvent]
 }
 
+public protocol SearchStore: Sendable {
+    func searchTasks(query: String, projectID: ProjectID?, limit: Int) async throws -> [WorkItem]
+}
+
 public protocol TrackerClient: Sendable {
     func listReadyTasks(projectID: ProjectID?) async throws -> [WorkItem]
     func updateTaskState(id: TaskID, state: WorkState) async throws

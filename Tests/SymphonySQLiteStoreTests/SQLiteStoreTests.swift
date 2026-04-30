@@ -1,4 +1,5 @@
 import XCTest
+import SQLite3
 import SymphonyCore
 @testable import SymphonySQLiteStore
 
@@ -223,10 +224,122 @@ final class SQLiteStoreTests: XCTestCase {
         XCTAssertEqual(persistedCursor, cursor)
     }
 
+    func testSearchTasksUsesFullTextIndexAndProjectFilter() async throws {
+        let store = try makeStore()
+        let project = Project(id: ProjectID(rawValue: "project-1"), name: "Composer")
+        let otherProject = Project(id: ProjectID(rawValue: "project-2"), name: "Other")
+        let syncTask = WorkItem(
+            id: TaskID(rawValue: "task-1"),
+            projectID: project.id,
+            identifier: "LOCAL-1",
+            title: "Build sync metadata search",
+            description: "Index task descriptions",
+            labels: ["storage", "search"]
+        )
+        let otherTask = WorkItem(
+            id: TaskID(rawValue: "task-2"),
+            projectID: otherProject.id,
+            identifier: "OTHER-1",
+            title: "Search in another project"
+        )
+
+        try await store.upsertProject(project)
+        try await store.upsertProject(otherProject)
+        try await store.upsertTask(syncTask)
+        try await store.upsertTask(otherTask)
+
+        let projectResults = try await store.searchTasks(query: "metadata", projectID: project.id, limit: 10)
+        let allResults = try await store.searchTasks(query: "search", projectID: nil, limit: 10)
+
+        XCTAssertEqual(projectResults.map(\.id), [syncTask.id])
+        XCTAssertEqual(Set(allResults.map(\.id)), [syncTask.id, otherTask.id])
+    }
+
+    func testSearchTasksIgnoresEmptyQueryAndLimit() async throws {
+        let store = try makeStore()
+        let project = Project(id: ProjectID(rawValue: "project-1"), name: "Composer")
+        let task = WorkItem(
+            id: TaskID(rawValue: "task-1"),
+            projectID: project.id,
+            identifier: "LOCAL-1",
+            title: "Build search"
+        )
+
+        try await store.upsertProject(project)
+        try await store.upsertTask(task)
+
+        let emptyResults = try await store.searchTasks(query: "   ", projectID: nil, limit: 10)
+        let zeroLimitResults = try await store.searchTasks(query: "search", projectID: nil, limit: 0)
+
+        XCTAssertEqual(emptyResults, [])
+        XCTAssertEqual(zeroLimitResults, [])
+    }
+
+    func testSearchIndexMigrationBackfillsExistingTaskContent() async throws {
+        let fileURL = makeStoreFileURL()
+        let project = Project(id: ProjectID(rawValue: "project-1"), name: "Composer")
+        let task = WorkItem(
+            id: TaskID(rawValue: "task-1"),
+            projectID: project.id,
+            identifier: "LOCAL-1",
+            title: "Migrate durable search",
+            description: "Backfill hydraulic queues",
+            labels: ["legacy"]
+        )
+
+        do {
+            let store = try SQLiteStore(fileURL: fileURL)
+            try await store.upsertProject(project)
+            try await store.upsertTask(task)
+        }
+
+        try withRawDatabase(fileURL: fileURL) { database in
+            try executeRaw("DROP TABLE task_search", database: database)
+            try executeRaw("PRAGMA user_version = 3", database: database)
+        }
+
+        let migratedStore = try SQLiteStore(fileURL: fileURL)
+        let results = try await migratedStore.searchTasks(query: "hydraulic", projectID: project.id, limit: 10)
+
+        XCTAssertEqual(results.map(\.id), [task.id])
+    }
+
     private func makeStore() throws -> SQLiteStore {
+        try SQLiteStore(fileURL: makeStoreFileURL())
+    }
+
+    private func makeStoreFileURL() -> URL {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("composer-sqlite-tests-\(UUID().uuidString)", isDirectory: true)
-        let fileURL = directory.appendingPathComponent("store.sqlite3")
-        return try SQLiteStore(fileURL: fileURL)
+        return directory.appendingPathComponent("store.sqlite3")
     }
+
+    private func withRawDatabase(fileURL: URL, body: (OpaquePointer) throws -> Void) throws {
+        var database: OpaquePointer?
+        guard sqlite3_open_v2(fileURL.path, &database, SQLITE_OPEN_READWRITE, nil) == SQLITE_OK,
+              let database else {
+            defer {
+                sqlite3_close(database)
+            }
+            throw RawSQLiteError.openFailed(fileURL.path)
+        }
+
+        defer {
+            sqlite3_close(database)
+        }
+
+        try body(database)
+    }
+
+    private func executeRaw(_ sql: String, database: OpaquePointer) throws {
+        guard sqlite3_exec(database, sql, nil, nil, nil) == SQLITE_OK else {
+            let message = sqlite3_errmsg(database).map { String(cString: $0) } ?? "Unknown SQLite error"
+            throw RawSQLiteError.statementFailed(sql, message)
+        }
+    }
+}
+
+private enum RawSQLiteError: Error {
+    case openFailed(String)
+    case statementFailed(String, String)
 }
