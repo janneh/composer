@@ -1,6 +1,7 @@
 import XCTest
 import ComposerStorage
 import SymphonyInterfaces
+import SymphonyRuntime
 @testable import ComposerApp
 
 final class AppStorageConfigurationTests: XCTestCase {
@@ -102,6 +103,24 @@ final class AppStorageConfigurationTests: XCTestCase {
         )
 
         XCTAssertTrue(environment.supportsRunDispatch)
+    }
+
+    func testRuntimeEnvironmentPassesStoreSelectionToHelperClient() throws {
+        let fileURL = temporaryDirectory().appendingPathComponent("runtime.sqlite3")
+        let selection = try StoreFactory.makeStore(
+            configuration: StoreConfiguration(backend: .sqlite, fileURL: fileURL)
+        )
+
+        let environment = AppRuntimeEnvironment(
+            storeSelection: selection,
+            runtimeConnection: .helper(machServiceName: "dev.janneh.test")
+        )
+        let client = try XCTUnwrap(environment.runtimeService as? RuntimeXPCClient)
+
+        XCTAssertEqual(
+            client.storeContext,
+            RuntimeServiceStoreContext(backend: "sqlite", path: fileURL.path)
+        )
     }
 
     @MainActor

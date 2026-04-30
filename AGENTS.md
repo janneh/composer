@@ -105,6 +105,7 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 - `SymphonyRuntime.Orchestrator` also owns run cancellation, retry requeueing, stalled-run marking, and resume dispatch for runners that advertise resume support.
 - `SymphonyRuntime.LocalRuntimeService` and the runtime XPC request/response codec are the boundary for app/helper runtime calls; keep direct `Orchestrator` use behind that service when wiring process boundaries.
 - `ComposerRuntimeHelper` composes durable storage, `FileWorkflowProvider`, `LocalWorkspaceProvider`, and concrete agent runners behind the runtime XPC service.
+- Runtime XPC requests carry the app-selected storage backend/path so helper mode operates on the same store as the foreground app.
 - `ComposerApp` can use the helper by setting `COMPOSER_RUNTIME_MODE=helper` or the `ComposerRuntimeMode` app default; in helper mode runtime actions go through `RuntimeXPCClient` so active runs live outside the foreground app process.
 - `SymphonySync.SyncOutboxProcessor` works only through `SyncOutboxStore` and `SyncOutboxTransport`; concrete cloud/tracker transports should stay outside core app/runtime code.
 - `SymphonySync.SyncConflictPolicy` resolves provider-neutral local/base/remote snapshots; provider adapters should translate remote revisions into `SyncRecordVersion` without leaking provider types into the app.

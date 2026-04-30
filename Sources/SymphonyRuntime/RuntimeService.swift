@@ -130,6 +130,26 @@ public enum RuntimeServiceRequest: Codable, Hashable, Sendable {
     case resumeRun(taskID: TaskID, runID: RunID)
 }
 
+public struct RuntimeServiceStoreContext: Codable, Hashable, Sendable {
+    public var backend: String
+    public var path: String?
+
+    public init(backend: String, path: String?) {
+        self.backend = backend
+        self.path = path
+    }
+}
+
+public struct RuntimeServiceEnvelope: Codable, Hashable, Sendable {
+    public var request: RuntimeServiceRequest
+    public var storeContext: RuntimeServiceStoreContext?
+
+    public init(request: RuntimeServiceRequest, storeContext: RuntimeServiceStoreContext? = nil) {
+        self.request = request
+        self.storeContext = storeContext
+    }
+}
+
 public enum RuntimeServiceResponse: Codable, Hashable, Sendable {
     case dispatchPlan(DispatchPlan)
     case dispatchExecution(DispatchExecution)
@@ -212,12 +232,24 @@ public extension RuntimeServiceResponse {
 }
 
 public enum RuntimeXPCCodec {
-    public static func encodeRequest(_ request: RuntimeServiceRequest) throws -> Data {
-        try JSONEncoder().encode(request)
+    public static func encodeRequest(
+        _ request: RuntimeServiceRequest,
+        storeContext: RuntimeServiceStoreContext? = nil
+    ) throws -> Data {
+        try JSONEncoder().encode(RuntimeServiceEnvelope(request: request, storeContext: storeContext))
+    }
+
+    public static func decodeEnvelope(_ data: Data) throws -> RuntimeServiceEnvelope {
+        let decoder = JSONDecoder()
+        if let envelope = try? decoder.decode(RuntimeServiceEnvelope.self, from: data) {
+            return envelope
+        }
+
+        return RuntimeServiceEnvelope(request: try decoder.decode(RuntimeServiceRequest.self, from: data))
     }
 
     public static func decodeRequest(_ data: Data) throws -> RuntimeServiceRequest {
-        try JSONDecoder().decode(RuntimeServiceRequest.self, from: data)
+        try decodeEnvelope(data).request
     }
 
     public static func encodeResponse(_ response: RuntimeServiceResponse) throws -> Data {
@@ -235,17 +267,24 @@ public enum RuntimeXPCCodec {
 }
 
 public final class RuntimeServiceXPCAdapter: NSObject, ComposerRuntimeXPCServicing, @unchecked Sendable {
-    private let service: any RuntimeService
+    private let serviceFactory: @Sendable (RuntimeServiceStoreContext?) async throws -> any RuntimeService
 
     public init(service: any RuntimeService) {
-        self.service = service
+        self.serviceFactory = { _ in service }
+    }
+
+    public init(
+        serviceFactory: @escaping @Sendable (RuntimeServiceStoreContext?) async throws -> any RuntimeService
+    ) {
+        self.serviceFactory = serviceFactory
     }
 
     public func handleRuntimeRequest(_ requestData: Data, withReply reply: @escaping (Data?, String?) -> Void) {
         Task {
             do {
-                let request = try RuntimeXPCCodec.decodeRequest(requestData)
-                let response = try await service.handle(request)
+                let envelope = try RuntimeXPCCodec.decodeEnvelope(requestData)
+                let service = try await serviceFactory(envelope.storeContext)
+                let response = try await service.handle(envelope.request)
                 reply(try RuntimeXPCCodec.encodeResponse(response), nil)
             } catch {
                 reply(nil, error.localizedDescription)
@@ -258,11 +297,16 @@ public final class RuntimeXPCClient: RuntimeService, @unchecked Sendable {
     public static let defaultMachServiceName = "dev.janneh.composer.runtime"
 
     private let machServiceName: String
+    public let storeContext: RuntimeServiceStoreContext?
     private let lock = NSLock()
     private var connection: NSXPCConnection?
 
-    public init(machServiceName: String = RuntimeXPCClient.defaultMachServiceName) {
+    public init(
+        machServiceName: String = RuntimeXPCClient.defaultMachServiceName,
+        storeContext: RuntimeServiceStoreContext? = nil
+    ) {
         self.machServiceName = machServiceName
+        self.storeContext = storeContext
     }
 
     deinit {
@@ -294,7 +338,7 @@ public final class RuntimeXPCClient: RuntimeService, @unchecked Sendable {
     }
 
     private func send(_ request: RuntimeServiceRequest) async throws -> RuntimeServiceResponse {
-        let requestData = try RuntimeXPCCodec.encodeRequest(request)
+        let requestData = try RuntimeXPCCodec.encodeRequest(request, storeContext: storeContext)
         return try await withCheckedThrowingContinuation { continuation in
             guard let proxy = remoteProxy(errorHandler: { error in
                 continuation.resume(throwing: error)

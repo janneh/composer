@@ -49,6 +49,19 @@ final class RuntimeServiceBoundaryTests: XCTestCase {
         XCTAssertEqual(try RuntimeXPCCodec.decodeResponse(responseData), response)
     }
 
+    func testRuntimeXPCCodecCarriesStoreContext() throws {
+        let projectID = ProjectID(rawValue: "project-1")
+        let request = RuntimeServiceRequest.previewDispatch(projectID: projectID)
+        let context = RuntimeServiceStoreContext(backend: "sqlite", path: "/tmp/composer.sqlite3")
+
+        let requestData = try RuntimeXPCCodec.encodeRequest(request, storeContext: context)
+        let envelope = try RuntimeXPCCodec.decodeEnvelope(requestData)
+
+        XCTAssertEqual(envelope.request, request)
+        XCTAssertEqual(envelope.storeContext, context)
+        XCTAssertEqual(try RuntimeXPCCodec.decodeRequest(requestData), request)
+    }
+
     func testRuntimeXPCAdapterReturnsEncodedResponse() async throws {
         let project = Project(
             id: ProjectID(rawValue: "project-1"),
@@ -84,6 +97,27 @@ final class RuntimeServiceBoundaryTests: XCTestCase {
         XCTAssertEqual(plan.ready.map(\.id), [task.id])
     }
 
+    func testRuntimeXPCAdapterRoutesByStoreContext() async throws {
+        let context = RuntimeServiceStoreContext(backend: "sqlite", path: "/tmp/composer.sqlite3")
+        let recorder = RuntimeContextRecorder()
+        let adapter = RuntimeServiceXPCAdapter(serviceFactory: { receivedContext in
+            await recorder.record(receivedContext)
+            return StaticRuntimeService(plan: DispatchPlan(ready: [], blocked: [], missingRunner: []))
+        })
+        let requestData = try RuntimeXPCCodec.encodeRequest(.previewDispatch(projectID: nil), storeContext: context)
+
+        let (responseData, errorMessage) = await withCheckedContinuation { continuation in
+            adapter.handleRuntimeRequest(requestData) { responseData, errorMessage in
+                continuation.resume(returning: (responseData, errorMessage))
+            }
+        }
+
+        XCTAssertNil(errorMessage)
+        XCTAssertNotNil(responseData)
+        let contexts = await recorder.contexts()
+        XCTAssertEqual(contexts, [context])
+    }
+
     func testFallbackRuntimeServiceUsesFallbackWhenPrimaryMatchesPolicy() async throws {
         let fallbackPlan = DispatchPlan(ready: [], blocked: [], missingRunner: [])
         let service = FallbackRuntimeService(
@@ -97,6 +131,18 @@ final class RuntimeServiceBoundaryTests: XCTestCase {
         let plan = try await service.previewDispatch(projectID: nil)
 
         XCTAssertEqual(plan, fallbackPlan)
+    }
+}
+
+private actor RuntimeContextRecorder {
+    private var recordedContexts: [RuntimeServiceStoreContext?] = []
+
+    func record(_ context: RuntimeServiceStoreContext?) {
+        recordedContexts.append(context)
+    }
+
+    func contexts() -> [RuntimeServiceStoreContext?] {
+        recordedContexts
     }
 }
 

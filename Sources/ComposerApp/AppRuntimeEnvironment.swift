@@ -44,7 +44,8 @@ struct AppRuntimeEnvironment {
         let localService = LocalRuntimeService(orchestrator: orchestrator)
         self.runtimeService = runtimeService ?? Self.makeRuntimeService(
             localService: localService,
-            connection: runtimeConnection
+            connection: runtimeConnection,
+            storeSelection: storeSelection
         )
     }
 
@@ -95,14 +96,21 @@ struct AppRuntimeEnvironment {
 
     private static func makeRuntimeService(
         localService: LocalRuntimeService,
-        connection: AppRuntimeConnection
+        connection: AppRuntimeConnection,
+        storeSelection: StoreSelection
     ) -> any RuntimeService {
         switch connection {
         case .local:
             return localService
         case let .helper(machServiceName):
             #if canImport(ObjectiveC)
-            return RuntimeXPCClient(machServiceName: machServiceName)
+            return RuntimeXPCClient(
+                machServiceName: machServiceName,
+                storeContext: RuntimeServiceStoreContext(
+                    backend: storeSelection.backend.rawValue,
+                    path: storeSelection.fileURL.path
+                )
+            )
             #else
             return localService
             #endif

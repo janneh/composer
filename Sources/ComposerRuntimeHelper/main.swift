@@ -51,7 +51,7 @@ private struct RuntimeHelperConfiguration {
         self.machServiceName = machServiceName
     }
 
-    private static func fileURL(path: String) -> URL {
+    fileprivate static func fileURL(path: String) -> URL {
         URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
     }
 
@@ -97,6 +97,57 @@ private final class RuntimeHelperDelegate: NSObject, NSXPCListenerDelegate {
     }
 }
 
+private struct RuntimeStoreCacheKey: Hashable {
+    var backend: StoreBackend
+    var path: String?
+}
+
+private actor RuntimeServiceRegistry {
+    private let defaultStoreConfiguration: StoreConfiguration
+    private let defaultKey: RuntimeStoreCacheKey
+    private var services: [RuntimeStoreCacheKey: LocalRuntimeService]
+
+    init(defaultStoreConfiguration: StoreConfiguration, defaultStoreSelection: StoreSelection) {
+        self.defaultStoreConfiguration = defaultStoreConfiguration
+        defaultKey = Self.cacheKey(for: defaultStoreSelection)
+        services = [
+            defaultKey: makeRuntimeService(storeSelection: defaultStoreSelection)
+        ]
+    }
+
+    func service(for context: RuntimeServiceStoreContext?) async throws -> any RuntimeService {
+        if context == nil, let service = services[defaultKey] {
+            return service
+        }
+
+        let configuration = try storeConfiguration(for: context)
+        let selection = try StoreFactory.makeStore(configuration: configuration)
+        let key = Self.cacheKey(for: selection)
+        if let service = services[key] {
+            return service
+        }
+
+        let service = makeRuntimeService(storeSelection: selection)
+        services[key] = service
+        return service
+    }
+
+    private func storeConfiguration(for context: RuntimeServiceStoreContext?) throws -> StoreConfiguration {
+        guard let context else {
+            return defaultStoreConfiguration
+        }
+
+        return StoreConfiguration(
+            backend: try StoreBackend(argument: context.backend),
+            fileURL: context.path.map(RuntimeHelperConfiguration.fileURL(path:))
+        )
+    }
+
+    private static func cacheKey(for selection: StoreSelection) -> RuntimeStoreCacheKey {
+        RuntimeStoreCacheKey(backend: selection.backend, path: selection.fileURL.path)
+    }
+}
+
 private func makeRuntimeService(storeSelection: StoreSelection) -> LocalRuntimeService {
     let orchestrator = Orchestrator(
         taskStore: storeSelection.store,
@@ -130,15 +181,20 @@ private func printUsage() {
 
 do {
     let configuration = try RuntimeHelperConfiguration()
-    let storeSelection = try StoreFactory.makeStore(configuration: configuration.storeConfiguration)
-    let service = makeRuntimeService(storeSelection: storeSelection)
-    let adapter = RuntimeServiceXPCAdapter(service: service)
+    let defaultStoreSelection = try StoreFactory.makeStore(configuration: configuration.storeConfiguration)
+    let serviceRegistry = RuntimeServiceRegistry(
+        defaultStoreConfiguration: configuration.storeConfiguration,
+        defaultStoreSelection: defaultStoreSelection
+    )
+    let adapter = RuntimeServiceXPCAdapter(serviceFactory: { context in
+        try await serviceRegistry.service(for: context)
+    })
     let delegate = RuntimeHelperDelegate(adapter: adapter)
     let listener = NSXPCListener(machServiceName: configuration.machServiceName)
     listener.delegate = delegate
     listener.resume()
 
-    print("Composer runtime helper listening on \(configuration.machServiceName) using \(storeSelection.backend.rawValue) store at \(storeSelection.fileURL.path)")
+    print("Composer runtime helper listening on \(configuration.machServiceName) using \(defaultStoreSelection.backend.rawValue) store at \(defaultStoreSelection.fileURL.path)")
     withExtendedLifetime(delegate) {
         RunLoop.main.run()
     }
