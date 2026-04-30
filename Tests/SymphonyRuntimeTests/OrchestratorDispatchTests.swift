@@ -117,6 +117,53 @@ final class OrchestratorDispatchTests: XCTestCase {
         XCTAssertEqual(events.map(\.kind), [.runQueued, .runFailed])
     }
 
+    func testDispatchReadyConsumesRunnerCompletionEvents() async throws {
+        let date = Date(timeIntervalSince1970: 1_000)
+        let project = Project(
+            id: ProjectID(rawValue: "project-1"),
+            name: "Composer",
+            repositoryPath: "/repo",
+            defaultAgent: AgentConfiguration(kind: .codex)
+        )
+        let task = WorkItem(
+            id: TaskID(rawValue: "task-1"),
+            projectID: project.id,
+            identifier: "LOCAL-1",
+            title: "Dispatch task",
+            state: .ready
+        )
+        let store = InMemoryStore(projects: [project], tasks: [task])
+        let runner = RecordingAgentRunner(
+            kind: .codex,
+            events: [
+                .progress(message: "Working"),
+                .completed(summary: "Done")
+            ]
+        )
+        let orchestrator = Orchestrator(
+            taskStore: store,
+            projectStore: store,
+            runStore: store,
+            eventStore: store,
+            workflowProvider: RecordingWorkflowProvider(),
+            workspaceProvider: RecordingWorkspaceProvider(
+                workspace: WorkspaceReference(path: "/tmp/workspace", preparedAt: date)
+            ),
+            runners: [runner],
+            now: { date }
+        )
+
+        let execution = try await orchestrator.dispatchReady(projectID: project.id)
+        let run = try XCTUnwrap(execution.startedRuns.first)
+        let finishedRun = try await waitForRunStatus(.succeeded, runID: run.id, taskID: task.id, store: store)
+        let persistedTask = try await store.task(id: task.id)
+
+        XCTAssertEqual(finishedRun.summary, "Done")
+        XCTAssertEqual(persistedTask?.state, .humanReview)
+        let events = try await store.listEvents(taskID: task.id, limit: 10)
+        XCTAssertEqual(events.map(\.kind), [.runQueued, .runStarted, .runEvent, .runFinished])
+    }
+
     func testDispatchReadyRequiresExecutionDependencies() async throws {
         let project = Project(id: ProjectID(rawValue: "project-1"), name: "Composer")
         let store = InMemoryStore(projects: [project], tasks: [])
@@ -131,6 +178,24 @@ final class OrchestratorDispatchTests: XCTestCase {
                 .missingDispatchDependencies(["runStore", "eventStore", "workflowProvider", "workspaceProvider"])
             )
         }
+    }
+
+    private func waitForRunStatus(
+        _ status: RunStatus,
+        runID: RunID,
+        taskID: TaskID,
+        store: InMemoryStore
+    ) async throws -> RunAttempt {
+        for _ in 0..<50 {
+            let runs = try await store.listRuns(taskID: taskID)
+            if let run = runs.first(where: { $0.id == runID }), run.status == status {
+                return run
+            }
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        let runs = try await store.listRuns(taskID: taskID)
+        return try XCTUnwrap(runs.first(where: { $0.id == runID }))
     }
 }
 
@@ -245,10 +310,16 @@ final class RecordingAgentRunner: AgentRunner, @unchecked Sendable {
     private(set) var startedRunIDs: [RunID] = []
     private(set) var canceledSessionIDs: [AgentSessionID] = []
     private(set) var resumedSessions: [AgentSession] = []
+    private let streamEvents: [AgentRunEvent]
 
-    init(kind: AgentKind, capabilities: AgentCapabilities = AgentCapabilities()) {
+    init(
+        kind: AgentKind,
+        capabilities: AgentCapabilities = AgentCapabilities(),
+        events: [AgentRunEvent] = []
+    ) {
         self.kind = kind
         self.capabilities = capabilities
+        self.streamEvents = events
     }
 
     func start(request: AgentRunRequest, runID: RunID) async throws -> AgentSession {
@@ -270,7 +341,10 @@ final class RecordingAgentRunner: AgentRunner, @unchecked Sendable {
     }
 
     func events(for sessionID: AgentSessionID) -> AsyncThrowingStream<AgentRunEvent, Error> {
-        AsyncThrowingStream { continuation in
+        AsyncThrowingStream { [streamEvents] continuation in
+            for event in streamEvents {
+                continuation.yield(event)
+            }
             continuation.finish()
         }
     }

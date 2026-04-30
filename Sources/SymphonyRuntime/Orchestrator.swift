@@ -307,6 +307,12 @@ public actor Orchestrator {
                     ],
                     createdAt: startedAt
                 ))
+                consumeRunnerEvents(
+                    from: runner,
+                    sessionID: session.id,
+                    taskID: task.id,
+                    runID: run.id
+                )
                 startedRuns.append(run)
             } catch {
                 let failedAt = now()
@@ -338,6 +344,9 @@ public actor Orchestrator {
 
         let projection = AgentRunEventProjection.project(agentEvent, run: run, taskID: taskID, at: now())
         try await dependencies.runStore.upsertRun(projection.run)
+        if let state = agentEvent.taskState, let task = try await taskStore.task(id: taskID) {
+            try await taskStore.upsertTask(task.moving(to: state, at: projection.event.createdAt))
+        }
         try await dependencies.eventStore.appendEvent(projection.event)
         return projection.run
     }
@@ -468,7 +477,37 @@ public actor Orchestrator {
             payload: ["agent": run.agent.kind.rawValue],
             createdAt: resumedAt
         ))
+        consumeRunnerEvents(
+            from: runner,
+            sessionID: session.id,
+            taskID: taskID,
+            runID: runID
+        )
         return run
+    }
+
+    private func consumeRunnerEvents(
+        from runner: any AgentRunner,
+        sessionID: AgentSessionID,
+        taskID: TaskID,
+        runID: RunID
+    ) {
+        Task { [runner, sessionID, taskID, runID] in
+            do {
+                for try await event in runner.events(for: sessionID) {
+                    _ = try await self.recordAgentEvent(event, taskID: taskID, runID: runID)
+                    if event.isTerminal {
+                        break
+                    }
+                }
+            } catch {
+                _ = try? await self.recordAgentEvent(
+                    .failed(message: "Agent event stream failed: \(error.localizedDescription)"),
+                    taskID: taskID,
+                    runID: runID
+                )
+            }
+        }
     }
 
     private func dispatchDependencies() throws -> (
@@ -512,6 +551,28 @@ public actor Orchestrator {
             throw OrchestratorError.runNotFound(runID)
         }
         return run
+    }
+}
+
+private extension AgentRunEvent {
+    var isTerminal: Bool {
+        switch self {
+        case .completed, .failed:
+            true
+        case .started, .progress, .toolUse, .partialOutput, .waitingForInput:
+            false
+        }
+    }
+
+    var taskState: WorkState? {
+        switch self {
+        case .completed:
+            .humanReview
+        case .failed:
+            .failed
+        case .started, .progress, .toolUse, .partialOutput, .waitingForInput:
+            nil
+        }
     }
 }
 
