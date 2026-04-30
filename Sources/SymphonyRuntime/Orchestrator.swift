@@ -410,16 +410,33 @@ public actor Orchestrator {
                 continue
             }
 
+            var payload = ["agent": run.agent.kind.rawValue]
+            if let sessionID = run.sessionID {
+                payload["sessionID"] = sessionID.rawValue
+                if let runner = runners[run.agent.kind] {
+                    do {
+                        try await runner.cancel(sessionID: sessionID)
+                    } catch {
+                        payload["cancelError"] = error.localizedDescription
+                    }
+                } else {
+                    payload["cancelError"] = OrchestratorError.runnerNotFound(run.agent.kind).localizedDescription
+                }
+            }
+
             run.status = .stalled
             run.finishedAt = date
             run.summary = "Run stalled after \(Int(interval)) seconds without completion."
             try await dependencies.runStore.upsertRun(run)
+            if let task = try await taskStore.task(id: run.taskID) {
+                try await taskStore.upsertTask(task.moving(to: .failed, at: date))
+            }
             try await dependencies.eventStore.appendEvent(RuntimeEvent(
                 taskID: run.taskID,
                 runID: run.id,
                 kind: .runFailed,
                 message: "Run stalled",
-                payload: ["agent": run.agent.kind.rawValue],
+                payload: payload,
                 createdAt: date
             ))
             stalledRuns.append(run)

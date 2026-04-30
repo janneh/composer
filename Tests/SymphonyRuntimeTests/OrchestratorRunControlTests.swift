@@ -111,6 +111,47 @@ final class OrchestratorRunControlTests: XCTestCase {
         XCTAssertEqual(runs.first(where: { $0.id == freshRun.id })?.status, .running)
     }
 
+    func testMarkStalledRunsCancelsLiveSessionAndMarksTaskFailed() async throws {
+        let now = Date(timeIntervalSince1970: 2_000)
+        let project = Project(id: ProjectID(rawValue: "project-1"), name: "Composer")
+        let task = WorkItem(
+            id: TaskID(rawValue: "task-1"),
+            projectID: project.id,
+            identifier: "LOCAL-1",
+            title: "Stall",
+            state: .running
+        )
+        let run = RunAttempt(
+            id: RunID(rawValue: "run-1"),
+            taskID: task.id,
+            agent: AgentConfiguration(kind: .codex),
+            status: .running,
+            sessionID: AgentSessionID(rawValue: "session-1"),
+            startedAt: Date(timeIntervalSince1970: 1_000)
+        )
+        let store = InMemoryStore(projects: [project], tasks: [task])
+        try await store.upsertRun(run)
+        let runner = RecordingAgentRunner(kind: .codex)
+        let orchestrator = Orchestrator(
+            taskStore: store,
+            projectStore: store,
+            runStore: store,
+            eventStore: store,
+            runners: [runner],
+            now: { now }
+        )
+
+        let stalled = try await orchestrator.markStalledRuns(olderThan: 300)
+
+        XCTAssertEqual(stalled.map(\.id), [run.id])
+        XCTAssertEqual(runner.canceledSessionIDs, [AgentSessionID(rawValue: "session-1")])
+        let storedTask = try await store.task(id: task.id)
+        XCTAssertEqual(storedTask?.state, .failed)
+        let events = try await store.listEvents(taskID: task.id, limit: 10)
+        XCTAssertEqual(events.map(\.kind), [.runFailed])
+        XCTAssertEqual(events.first?.payload["sessionID"], "session-1")
+    }
+
     func testResumeRunUsesExistingWorkspaceAndResumeToken() async throws {
         let date = Date(timeIntervalSince1970: 2_000)
         let project = Project(
