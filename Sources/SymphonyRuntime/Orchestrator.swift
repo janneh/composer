@@ -219,6 +219,7 @@ public actor Orchestrator {
         let projects = try await projectStore.listProjects()
         let projectsByID = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0) })
         let tasksByID = Dictionary(uniqueKeysWithValues: tasks.map { ($0.id, $0) })
+        let capacity = try await availableDispatchCapacity()
 
         var ready: [WorkItem] = []
         var blocked: [WorkItem] = []
@@ -241,7 +242,7 @@ public actor Orchestrator {
         }
 
         return DispatchPlan(
-            ready: Array(ready.prefix(configuration.maxConcurrentRuns)),
+            ready: Array(ready.prefix(capacity)),
             blocked: blocked,
             missingRunner: missingRunner
         )
@@ -545,6 +546,16 @@ public actor Orchestrator {
         return (runStore, eventStore)
     }
 
+    private func availableDispatchCapacity() async throws -> Int {
+        guard let runStore else {
+            return max(0, configuration.maxConcurrentRuns)
+        }
+
+        let runs = try await runStore.listRuns(taskID: nil)
+        let activeRuns = runs.filter(\.status.consumesDispatchCapacity).count
+        return max(0, configuration.maxConcurrentRuns - activeRuns)
+    }
+
     private func run(taskID: TaskID, runID: RunID, runStore: RunStore) async throws -> RunAttempt {
         let runs = try await runStore.listRuns(taskID: taskID)
         guard let run = runs.first(where: { $0.id == runID }) else {
@@ -578,6 +589,15 @@ private extension AgentRunEvent {
 
 private extension RunStatus {
     var canStall: Bool {
+        switch self {
+        case .running, .waitingForInput:
+            true
+        case .queued, .succeeded, .failed, .canceled, .stalled:
+            false
+        }
+    }
+
+    var consumesDispatchCapacity: Bool {
         switch self {
         case .running, .waitingForInput:
             true

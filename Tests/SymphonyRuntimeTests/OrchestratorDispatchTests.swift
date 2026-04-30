@@ -164,6 +164,67 @@ final class OrchestratorDispatchTests: XCTestCase {
         XCTAssertEqual(events.map(\.kind), [.runQueued, .runStarted, .runEvent, .runFinished])
     }
 
+    func testDispatchCapacitySubtractsActiveRuns() async throws {
+        let date = Date(timeIntervalSince1970: 1_000)
+        let project = Project(
+            id: ProjectID(rawValue: "project-1"),
+            name: "Composer",
+            repositoryPath: "/repo",
+            defaultAgent: AgentConfiguration(kind: .codex)
+        )
+        let activeTask = WorkItem(
+            id: TaskID(rawValue: "task-active"),
+            projectID: project.id,
+            identifier: "LOCAL-0",
+            title: "Active",
+            state: .running
+        )
+        let firstReady = WorkItem(
+            id: TaskID(rawValue: "task-1"),
+            projectID: project.id,
+            identifier: "LOCAL-1",
+            title: "Ready 1",
+            state: .ready
+        )
+        let secondReady = WorkItem(
+            id: TaskID(rawValue: "task-2"),
+            projectID: project.id,
+            identifier: "LOCAL-2",
+            title: "Ready 2",
+            state: .ready
+        )
+        let activeRun = RunAttempt(
+            id: RunID(rawValue: "run-active"),
+            taskID: activeTask.id,
+            agent: AgentConfiguration(kind: .codex),
+            status: .running,
+            startedAt: date
+        )
+        let store = InMemoryStore(projects: [project], tasks: [activeTask, firstReady, secondReady])
+        try await store.upsertRun(activeRun)
+        let orchestrator = Orchestrator(
+            taskStore: store,
+            projectStore: store,
+            runStore: store,
+            eventStore: store,
+            workflowProvider: RecordingWorkflowProvider(),
+            workspaceProvider: RecordingWorkspaceProvider(
+                workspace: WorkspaceReference(path: "/tmp/workspace", preparedAt: date)
+            ),
+            runners: [RecordingAgentRunner(kind: .codex)],
+            configuration: OrchestratorConfiguration(maxConcurrentRuns: 2),
+            now: { date }
+        )
+
+        let preview = try await orchestrator.previewDispatch(projectID: project.id)
+        let execution = try await orchestrator.dispatchReady(projectID: project.id)
+
+        XCTAssertEqual(preview.ready.map(\.id), [firstReady.id])
+        XCTAssertEqual(execution.startedRuns.map(\.taskID), [firstReady.id])
+        let secondPersisted = try await store.task(id: secondReady.id)
+        XCTAssertEqual(secondPersisted?.state, .ready)
+    }
+
     func testDispatchReadyRequiresExecutionDependencies() async throws {
         let project = Project(id: ProjectID(rawValue: "project-1"), name: "Composer")
         let store = InMemoryStore(projects: [project], tasks: [])
