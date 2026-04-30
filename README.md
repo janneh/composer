@@ -21,6 +21,7 @@ The first implementation keeps the important boundaries generic:
 - `SymphonyRuntime`: dispatch planning/execution, run control, runtime service/XPC boundary types, and normalized agent-event projection across stores, workflow providers, workspace providers, and agent runners. It depends on interfaces, not concrete providers.
 - `ComposerApp`: the SwiftUI macOS board and inspector.
 - `ComposerCLI`: the `composerctl` command-line surface for writing projects and tasks into the selected local store backend.
+- `ComposerRuntimeHelper`: the LaunchAgent-hosted helper that exposes runtime service calls over XPC.
 
 ## Development
 
@@ -30,6 +31,9 @@ Use the Makefile as the main developer entry point:
 | --- | --- |
 | `make test` | Build and run tests |
 | `make build` | Build the CLI and macOS app |
+| `make helper` | Build `composer-runtime-helper` |
+| `make install-helper` | Install and bootstrap the runtime LaunchAgent |
+| `make unload-helper` | Boot out the runtime LaunchAgent |
 | `make xcode-build` | Build `Composer.app` with Xcode |
 | `make app` | Build and open `Composer.app` |
 | `make open-project` | Open `Composer.xcodeproj` in Xcode |
@@ -63,3 +67,12 @@ COMPOSER_STORE_BACKEND=sqlite COMPOSER_STORE_PATH=/tmp/composer.sqlite3 .build/X
 ```
 
 The same values can also be stored in app defaults with `ComposerStoreBackend` and `ComposerStorePath`.
+
+The runtime helper can be built and installed locally:
+
+```sh
+make helper
+make install-helper
+```
+
+It registers the `dev.janneh.composer.runtime` Mach service and uses the same `COMPOSER_STORE_BACKEND` / `COMPOSER_STORE_PATH` environment keys when launched directly.

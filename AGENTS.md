@@ -32,6 +32,7 @@ The repository is licensed under Apache-2.0.
 - `SymphonyGeminiAgent`: Gemini CLI runner implementation behind the generic agent runner protocol.
 - `ComposerApp`: SwiftUI macOS UI.
 - `ComposerCLI`: `composerctl` command-line surface for inserting projects/tasks into the same local store as the app.
+- `ComposerRuntimeHelper`: SwiftPM-built LaunchAgent helper executable hosting the runtime XPC service.
 - `Tests/SymphonyCoreTests`: focused domain tests.
 - `Tests/ComposerAppTests`: app storage configuration and composition tests.
 
@@ -54,6 +55,9 @@ make xcode-build
 make app
 make open-project
 make cli
+make helper
+make install-helper
+make unload-helper
 make smoke-cli
 make smoke-cli-sqlite
 ```
@@ -66,6 +70,8 @@ make smoke-cli-sqlite
 composerctl help
 composerctl task list
 ```
+
+`make helper` builds `composer-runtime-helper`. `make install-helper` installs it to `~/.local/bin`, renders the LaunchAgent plist into `~/Library/LaunchAgents`, and bootstraps it with `launchctl`; `make unload-helper` boots it out.
 
 Raw SwiftPM commands are acceptable when diagnosing Makefile behavior, but keep the Makefile as the documented entry point.
 
@@ -93,6 +99,7 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 - `SymphonyRuntime.AgentRunEventProjection` maps provider-neutral agent events into persisted runtime events and run status updates.
 - `SymphonyRuntime.Orchestrator` also owns run cancellation, retry requeueing, stalled-run marking, and resume dispatch for runners that advertise resume support.
 - `SymphonyRuntime.LocalRuntimeService` and the runtime XPC request/response codec are the boundary for app/helper runtime calls; keep direct `Orchestrator` use behind that service when wiring process boundaries.
+- `ComposerRuntimeHelper` composes durable storage, `FileWorkflowProvider`, `LocalWorkspaceProvider`, and concrete agent runners behind the runtime XPC service.
 - Project defaults and task preferred agents can carry provider kind, model, profile, and string parameters; keep provider-specific interpretation inside provider packages.
 - `AppRuntimeEnvironment` owns app-edge storage/orchestrator composition; keep SwiftUI app lifecycle code focused on window/model setup.
 - `SymphonyCodexAgent.CodexAgentRunner` wraps `codex exec --json` and maps JSONL output into normalized `AgentRunEvent` values.

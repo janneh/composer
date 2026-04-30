@@ -34,6 +34,7 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 - `SymphonyRuntime`: orchestration state machine, dispatch planning/execution, and normalized agent-event projection.
 - `ComposerApp`: SwiftUI macOS app surface.
 - `ComposerCLI`: command-line insertion and editing surface backed by the same local store.
+- `ComposerRuntimeHelper`: LaunchAgent-hosted XPC helper process for runtime service calls.
 
 ## Roadmap
 
@@ -88,7 +89,7 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 
 - [x] Split runtime composition from SwiftUI app lifecycle.
 - [x] Add XPC boundary.
-- [ ] Add helper/LaunchAgent process.
+- [x] Add helper/LaunchAgent process.
 - [ ] Keep active runs alive when the main window closes.
 
 ### 6. Sync And External Trackers

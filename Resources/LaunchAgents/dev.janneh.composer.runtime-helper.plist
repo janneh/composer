@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>dev.janneh.composer.runtime-helper</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__COMPOSER_RUNTIME_HELPER__</string>
+    <string>--mach-service</string>
+    <string>dev.janneh.composer.runtime</string>
+  </array>
+  <key>MachServices</key>
+  <dict>
+    <key>dev.janneh.composer.runtime</key>
+    <true/>
+  </dict>
+  <key>KeepAlive</key>
+  <true/>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>__COMPOSER_RUNTIME_LOG__</string>
+  <key>StandardErrorPath</key>
+  <string>__COMPOSER_RUNTIME_ERROR_LOG__</string>
+</dict>
+</plist>
