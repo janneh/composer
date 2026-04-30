@@ -82,7 +82,7 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 - [x] Add Claude runner.
 - [x] Add Gemini runner.
 - [x] Add per-task agent selection and provider settings.
-- [ ] Add cancellation, retry, stall detection, and resume support.
+- [x] Add cancellation, retry, stall detection, and resume support.
 
 ### 5. Background Execution
 

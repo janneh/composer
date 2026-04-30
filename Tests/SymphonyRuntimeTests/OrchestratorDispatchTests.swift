@@ -238,14 +238,17 @@ private final class RecordingWorkspaceProvider: WorkspaceProvider, @unchecked Se
     func cleanupWorkspace(_ workspace: WorkspaceReference, for task: WorkItem, project: Project) async throws {}
 }
 
-private final class RecordingAgentRunner: AgentRunner, @unchecked Sendable {
+final class RecordingAgentRunner: AgentRunner, @unchecked Sendable {
     var kind: AgentKind
-    var capabilities = AgentCapabilities()
+    var capabilities: AgentCapabilities
     private(set) var requests: [AgentRunRequest] = []
     private(set) var startedRunIDs: [RunID] = []
+    private(set) var canceledSessionIDs: [AgentSessionID] = []
+    private(set) var resumedSessions: [AgentSession] = []
 
-    init(kind: AgentKind) {
+    init(kind: AgentKind, capabilities: AgentCapabilities = AgentCapabilities()) {
         self.kind = kind
+        self.capabilities = capabilities
     }
 
     func start(request: AgentRunRequest, runID: RunID) async throws -> AgentSession {
@@ -254,9 +257,17 @@ private final class RecordingAgentRunner: AgentRunner, @unchecked Sendable {
         return AgentSession(id: AgentSessionID(rawValue: "session-1"), runID: runID)
     }
 
+    func resume(request: AgentRunRequest, runID: RunID, session: AgentSession) async throws -> AgentSession {
+        requests.append(request)
+        resumedSessions.append(session)
+        return AgentSession(id: AgentSessionID(rawValue: "session-resumed"), runID: runID, resumeToken: "resume-token-2")
+    }
+
     func send(_ input: AgentInput, to sessionID: AgentSessionID) async throws {}
 
-    func cancel(sessionID: AgentSessionID) async throws {}
+    func cancel(sessionID: AgentSessionID) async throws {
+        canceledSessionIDs.append(sessionID)
+    }
 
     func events(for sessionID: AgentSessionID) -> AsyncThrowingStream<AgentRunEvent, Error> {
         AsyncThrowingStream { continuation in

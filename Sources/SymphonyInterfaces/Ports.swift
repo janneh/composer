@@ -70,9 +70,31 @@ public protocol AgentRunner: Sendable {
     var capabilities: AgentCapabilities { get }
 
     func start(request: AgentRunRequest, runID: RunID) async throws -> AgentSession
+    func resume(request: AgentRunRequest, runID: RunID, session: AgentSession) async throws -> AgentSession
     func send(_ input: AgentInput, to sessionID: AgentSessionID) async throws
     func cancel(sessionID: AgentSessionID) async throws
     func events(for sessionID: AgentSessionID) -> AsyncThrowingStream<AgentRunEvent, Error>
+}
+
+public enum AgentRunnerCapabilityError: Error, Equatable, CustomStringConvertible, LocalizedError {
+    case resumeUnsupported(AgentKind)
+
+    public var description: String {
+        switch self {
+        case let .resumeUnsupported(kind):
+            return "\(kind.title) runner does not support resume."
+        }
+    }
+
+    public var errorDescription: String? {
+        description
+    }
+}
+
+public extension AgentRunner {
+    func resume(request: AgentRunRequest, runID: RunID, session: AgentSession) async throws -> AgentSession {
+        throw AgentRunnerCapabilityError.resumeUnsupported(kind)
+    }
 }
 
 public protocol SyncEngine: Sendable {

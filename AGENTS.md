@@ -91,6 +91,7 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 - `SymphonyWorkspace.LocalWorkspaceProvider` prepares deterministic per-task workspaces as detached Git worktrees under a configurable root directory and returns `WorkspaceReference` values for storage.
 - `SymphonyRuntime.Orchestrator.dispatchReady` creates queued/running run records, prepares a workspace, renders a run-aware prompt, starts the selected runner, moves the task to running, and appends runtime events.
 - `SymphonyRuntime.AgentRunEventProjection` maps provider-neutral agent events into persisted runtime events and run status updates.
+- `SymphonyRuntime.Orchestrator` also owns run cancellation, retry requeueing, stalled-run marking, and resume dispatch for runners that advertise resume support.
 - Project defaults and task preferred agents can carry provider kind, model, profile, and string parameters; keep provider-specific interpretation inside provider packages.
 - `SymphonyCodexAgent.CodexAgentRunner` wraps `codex exec --json` and maps JSONL output into normalized `AgentRunEvent` values.
 - `SymphonyClaudeAgent.ClaudeAgentRunner` wraps `claude --print --output-format stream-json` and maps stream output into normalized `AgentRunEvent` values.

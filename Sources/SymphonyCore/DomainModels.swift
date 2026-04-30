@@ -242,6 +242,7 @@ public struct RunAttempt: Identifiable, Codable, Hashable, Sendable {
     public var agent: AgentConfiguration
     public var status: RunStatus
     public var sessionID: AgentSessionID?
+    public var resumeToken: String?
     public var workspace: WorkspaceReference?
     public var startedAt: Date?
     public var finishedAt: Date?
@@ -253,6 +254,7 @@ public struct RunAttempt: Identifiable, Codable, Hashable, Sendable {
         agent: AgentConfiguration,
         status: RunStatus = .queued,
         sessionID: AgentSessionID? = nil,
+        resumeToken: String? = nil,
         workspace: WorkspaceReference? = nil,
         startedAt: Date? = nil,
         finishedAt: Date? = nil,
@@ -263,6 +265,7 @@ public struct RunAttempt: Identifiable, Codable, Hashable, Sendable {
         self.agent = agent
         self.status = status
         self.sessionID = sessionID
+        self.resumeToken = resumeToken
         self.workspace = workspace
         self.startedAt = startedAt
         self.finishedAt = finishedAt

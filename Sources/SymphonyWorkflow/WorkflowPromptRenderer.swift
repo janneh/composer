@@ -114,6 +114,7 @@ public struct WorkflowPromptRenderer: Sendable {
         - Status: \(run.status.rawValue)
         - Agent: \(renderAgent(run.agent))
         - Session: \(run.sessionID?.rawValue ?? "Not started")
+        - Resume token: \(run.resumeToken ?? "Not available")
         - Workspace: \(workspacePath)
         - Workspace cleanup: \(cleanupPolicy)
         - Workspace prepared: \(preparedAt)

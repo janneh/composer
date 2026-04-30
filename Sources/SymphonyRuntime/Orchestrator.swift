@@ -42,7 +42,11 @@ public struct DispatchExecution: Codable, Hashable, Sendable {
 public enum OrchestratorError: Error, Equatable, CustomStringConvertible, LocalizedError {
     case missingDispatchDependencies([String])
     case projectNotFound(ProjectID)
+    case taskNotFound(TaskID)
     case runNotFound(RunID)
+    case runnerNotFound(AgentKind)
+    case sessionNotFound(RunID)
+    case workspaceNotFound(RunID)
 
     public var description: String {
         switch self {
@@ -50,8 +54,16 @@ public enum OrchestratorError: Error, Equatable, CustomStringConvertible, Locali
             return "Dispatch requires missing dependencies: \(names.joined(separator: ", "))"
         case let .projectNotFound(projectID):
             return "Project not found for dispatch: \(projectID.rawValue)"
+        case let .taskNotFound(taskID):
+            return "Task not found: \(taskID.rawValue)"
         case let .runNotFound(runID):
             return "Run not found: \(runID.rawValue)"
+        case let .runnerNotFound(kind):
+            return "Runner not found: \(kind.title)"
+        case let .sessionNotFound(runID):
+            return "Run has no active session: \(runID.rawValue)"
+        case let .workspaceNotFound(runID):
+            return "Run has no workspace to resume: \(runID.rawValue)"
         }
     }
 
@@ -280,6 +292,7 @@ public actor Orchestrator {
                 let startedAt = now()
                 run.status = .running
                 run.sessionID = session.id
+                run.resumeToken = session.resumeToken
                 run.startedAt = startedAt
                 try await dependencies.runStore.upsertRun(run)
                 try await taskStore.upsertTask(task.moving(to: .running, at: startedAt))
@@ -329,6 +342,135 @@ public actor Orchestrator {
         return projection.run
     }
 
+    public func cancelRun(taskID: TaskID, runID: RunID) async throws -> RunAttempt {
+        let dependencies = try eventRecordingDependencies()
+        var run = try await run(taskID: taskID, runID: runID, runStore: dependencies.runStore)
+        guard let sessionID = run.sessionID else {
+            throw OrchestratorError.sessionNotFound(runID)
+        }
+        guard let runner = runners[run.agent.kind] else {
+            throw OrchestratorError.runnerNotFound(run.agent.kind)
+        }
+
+        try await runner.cancel(sessionID: sessionID)
+        let finishedAt = now()
+        run.status = .canceled
+        run.finishedAt = finishedAt
+        run.summary = "Canceled"
+        try await dependencies.runStore.upsertRun(run)
+        if let task = try await taskStore.task(id: taskID) {
+            try await taskStore.upsertTask(task.moving(to: .canceled, at: finishedAt))
+        }
+        try await dependencies.eventStore.appendEvent(RuntimeEvent(
+            taskID: taskID,
+            runID: runID,
+            kind: .runFinished,
+            message: "Run canceled",
+            payload: ["agent": run.agent.kind.rawValue],
+            createdAt: finishedAt
+        ))
+        return run
+    }
+
+    public func retryTask(id taskID: TaskID) async throws -> WorkItem {
+        let dependencies = try eventRecordingDependencies()
+        guard let task = try await taskStore.task(id: taskID) else {
+            throw OrchestratorError.taskNotFound(taskID)
+        }
+        let retriedAt = now()
+        let retried = task.moving(to: .ready, at: retriedAt)
+        try await taskStore.upsertTask(retried)
+        try await dependencies.eventStore.appendEvent(RuntimeEvent(
+            taskID: taskID,
+            kind: .taskMoved,
+            message: "Task queued for retry",
+            createdAt: retriedAt
+        ))
+        return retried
+    }
+
+    public func markStalledRuns(olderThan interval: TimeInterval) async throws -> [RunAttempt] {
+        let dependencies = try eventRecordingDependencies()
+        let date = now()
+        let runs = try await dependencies.runStore.listRuns(taskID: nil)
+        var stalledRuns: [RunAttempt] = []
+
+        for var run in runs where run.status.canStall {
+            guard let startedAt = run.startedAt, date.timeIntervalSince(startedAt) >= interval else {
+                continue
+            }
+
+            run.status = .stalled
+            run.finishedAt = date
+            run.summary = "Run stalled after \(Int(interval)) seconds without completion."
+            try await dependencies.runStore.upsertRun(run)
+            try await dependencies.eventStore.appendEvent(RuntimeEvent(
+                taskID: run.taskID,
+                runID: run.id,
+                kind: .runFailed,
+                message: "Run stalled",
+                payload: ["agent": run.agent.kind.rawValue],
+                createdAt: date
+            ))
+            stalledRuns.append(run)
+        }
+
+        return stalledRuns
+    }
+
+    public func resumeRun(taskID: TaskID, runID: RunID) async throws -> RunAttempt {
+        let dependencies = try dispatchDependencies()
+        guard let task = try await taskStore.task(id: taskID) else {
+            throw OrchestratorError.taskNotFound(taskID)
+        }
+        guard let project = try await projectStore.project(id: task.projectID) else {
+            throw OrchestratorError.projectNotFound(task.projectID)
+        }
+        var run = try await run(taskID: taskID, runID: runID, runStore: dependencies.runStore)
+        guard let runner = runners[run.agent.kind] else {
+            throw OrchestratorError.runnerNotFound(run.agent.kind)
+        }
+        guard runner.capabilities.supportsResume else {
+            throw AgentRunnerCapabilityError.resumeUnsupported(run.agent.kind)
+        }
+        guard let sessionID = run.sessionID else {
+            throw OrchestratorError.sessionNotFound(runID)
+        }
+        guard let workspace = run.workspace else {
+            throw OrchestratorError.workspaceNotFound(runID)
+        }
+
+        let prompt = try await dependencies.workflowProvider.prompt(for: task, project: project, run: run)
+        let request = AgentRunRequest(
+            task: task,
+            project: project,
+            workflowPrompt: prompt,
+            workspacePath: workspace.path,
+            agent: run.agent
+        )
+        let session = try await runner.resume(
+            request: request,
+            runID: runID,
+            session: AgentSession(id: sessionID, runID: runID, resumeToken: run.resumeToken)
+        )
+        let resumedAt = now()
+        run.status = .running
+        run.sessionID = session.id
+        run.resumeToken = session.resumeToken
+        run.finishedAt = nil
+        run.startedAt = run.startedAt ?? resumedAt
+        try await dependencies.runStore.upsertRun(run)
+        try await dependencies.eventStore.appendEvent(RuntimeEvent(
+            taskID: taskID,
+            runID: runID,
+            kind: .runStarted,
+            message: "Run resumed",
+            payload: ["agent": run.agent.kind.rawValue],
+            createdAt: resumedAt
+        ))
+        return run
+    }
+
     private func dispatchDependencies() throws -> (
         runStore: RunStore,
         eventStore: EventStore,
@@ -362,6 +504,25 @@ public actor Orchestrator {
         }
 
         return (runStore, eventStore)
+    }
+
+    private func run(taskID: TaskID, runID: RunID, runStore: RunStore) async throws -> RunAttempt {
+        let runs = try await runStore.listRuns(taskID: taskID)
+        guard let run = runs.first(where: { $0.id == runID }) else {
+            throw OrchestratorError.runNotFound(runID)
+        }
+        return run
+    }
+}
+
+private extension RunStatus {
+    var canStall: Bool {
+        switch self {
+        case .running, .waitingForInput:
+            true
+        case .queued, .succeeded, .failed, .canceled, .stalled:
+            false
+        }
     }
 }
 
