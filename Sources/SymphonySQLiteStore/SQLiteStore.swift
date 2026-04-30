@@ -3,7 +3,7 @@ import SQLite3
 import SymphonyCore
 import SymphonyInterfaces
 
-public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore {
+public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore, SyncOutboxStore, SyncMetadataStore {
     public nonisolated let fileURL: URL
 
     private var database: OpaquePointer?
@@ -239,6 +239,143 @@ public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore {
         }
     }
 
+    public func enqueueSyncOutboxEntry(_ entry: SyncOutboxEntry) async throws {
+        let sql = """
+        INSERT INTO sync_outbox (
+          id, aggregate, aggregate_id, operation, status, attempt_count,
+          available_at, last_error, external_reference, created_at, updated_at, json
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+
+        try write(sql) { statement in
+            try bindSyncOutboxEntry(entry, in: statement)
+        }
+    }
+
+    public func listPendingSyncOutboxEntries(limit: Int, now: Date) async throws -> [SyncOutboxEntry] {
+        let clampedLimit = max(0, limit)
+        guard clampedLimit > 0 else {
+            return []
+        }
+
+        return try readRows(
+            """
+            SELECT json FROM sync_outbox
+            WHERE status = ? AND available_at <= ?
+            ORDER BY available_at ASC, created_at ASC
+            LIMIT ?
+            """
+        ) { statement in
+            try bind(SyncOutboxStatus.pending.rawValue, to: 1, in: statement)
+            try bind(now, to: 2, in: statement)
+            try bind(clampedLimit, to: 3, in: statement)
+        } decode: { statement in
+            try decode(SyncOutboxEntry.self, fromColumn: 0, in: statement)
+        }
+    }
+
+    public func updateSyncOutboxEntry(_ entry: SyncOutboxEntry) async throws {
+        let sql = """
+        INSERT INTO sync_outbox (
+          id, aggregate, aggregate_id, operation, status, attempt_count,
+          available_at, last_error, external_reference, created_at, updated_at, json
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          aggregate = excluded.aggregate,
+          aggregate_id = excluded.aggregate_id,
+          operation = excluded.operation,
+          status = excluded.status,
+          attempt_count = excluded.attempt_count,
+          available_at = excluded.available_at,
+          last_error = excluded.last_error,
+          external_reference = excluded.external_reference,
+          created_at = excluded.created_at,
+          updated_at = excluded.updated_at,
+          json = excluded.json
+        """
+
+        try write(sql) { statement in
+            try bindSyncOutboxEntry(entry, in: statement)
+        }
+    }
+
+    public func upsertSyncMetadataRecord(_ record: SyncMetadataRecord) async throws {
+        let sql = """
+        INSERT INTO sync_metadata (
+          aggregate, aggregate_id, external_reference, revision, remote_updated_at,
+          last_pulled_at, last_pushed_at, has_local_changes, updated_at, json
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(aggregate, aggregate_id) DO UPDATE SET
+          external_reference = excluded.external_reference,
+          revision = excluded.revision,
+          remote_updated_at = excluded.remote_updated_at,
+          last_pulled_at = excluded.last_pulled_at,
+          last_pushed_at = excluded.last_pushed_at,
+          has_local_changes = excluded.has_local_changes,
+          updated_at = excluded.updated_at,
+          json = excluded.json
+        """
+
+        try write(sql) { statement in
+            try bind(record.aggregate.rawValue, to: 1, in: statement)
+            try bind(record.aggregateID, to: 2, in: statement)
+            try bind(record.externalReference, to: 3, in: statement)
+            try bind(record.version.revision, to: 4, in: statement)
+            try bind(record.version.updatedAt, to: 5, in: statement)
+            try bind(record.lastPulledAt, to: 6, in: statement)
+            try bind(record.lastPushedAt, to: 7, in: statement)
+            try bind(record.hasLocalChanges ? 1 : 0, to: 8, in: statement)
+            try bind(record.updatedAt, to: 9, in: statement)
+            try bindEncoded(record, to: 10, in: statement)
+        }
+    }
+
+    public func syncMetadataRecord(
+        aggregate: SyncOutboxAggregate,
+        aggregateID: String
+    ) async throws -> SyncMetadataRecord? {
+        try readOptionalRow(
+            """
+            SELECT json FROM sync_metadata
+            WHERE aggregate = ? AND aggregate_id = ?
+            """
+        ) { statement in
+            try bind(aggregate.rawValue, to: 1, in: statement)
+            try bind(aggregateID, to: 2, in: statement)
+        } decode: { statement in
+            try decode(SyncMetadataRecord.self, fromColumn: 0, in: statement)
+        }
+    }
+
+    public func upsertSyncCursorRecord(_ record: SyncCursorRecord) async throws {
+        let sql = """
+        INSERT INTO sync_cursors (scope, cursor, updated_at, json)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(scope) DO UPDATE SET
+          cursor = excluded.cursor,
+          updated_at = excluded.updated_at,
+          json = excluded.json
+        """
+
+        try write(sql) { statement in
+            try bind(record.scope, to: 1, in: statement)
+            try bind(record.cursor?.rawValue, to: 2, in: statement)
+            try bind(record.updatedAt, to: 3, in: statement)
+            try bindEncoded(record, to: 4, in: statement)
+        }
+    }
+
+    public func syncCursorRecord(scope: String) async throws -> SyncCursorRecord? {
+        try readOptionalRow("SELECT json FROM sync_cursors WHERE scope = ?") { statement in
+            try bind(scope, to: 1, in: statement)
+        } decode: { statement in
+            try decode(SyncCursorRecord.self, fromColumn: 0, in: statement)
+        }
+    }
+
     private static func applicationSupportDirectory(appName: String) throws -> URL {
         guard let baseURL = FileManager.default.urls(
             for: .applicationSupportDirectory,
@@ -258,6 +395,9 @@ public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore {
         }
         if version < 2 {
             try migrateToVersion2(database: database)
+        }
+        if version < 3 {
+            try migrateToVersion3(database: database)
         }
     }
 
@@ -352,6 +492,63 @@ public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore {
             ORDER BY created_at ASC
             """, database: database)
             try execute("PRAGMA user_version = 2", database: database)
+            try execute("COMMIT", database: database)
+        } catch {
+            try? execute("ROLLBACK", database: database)
+            throw error
+        }
+    }
+
+    private static func migrateToVersion3(database: OpaquePointer) throws {
+        try execute("BEGIN IMMEDIATE", database: database)
+        do {
+            try execute("""
+            CREATE TABLE IF NOT EXISTS sync_outbox (
+              id TEXT PRIMARY KEY NOT NULL,
+              aggregate TEXT NOT NULL,
+              aggregate_id TEXT NOT NULL,
+              operation TEXT NOT NULL,
+              status TEXT NOT NULL,
+              attempt_count INTEGER NOT NULL,
+              available_at REAL NOT NULL,
+              last_error TEXT,
+              external_reference TEXT,
+              created_at REAL NOT NULL,
+              updated_at REAL NOT NULL,
+              json BLOB NOT NULL
+            )
+            """, database: database)
+            try execute("CREATE INDEX IF NOT EXISTS idx_sync_outbox_pending ON sync_outbox(status, available_at ASC, created_at ASC)", database: database)
+            try execute("CREATE INDEX IF NOT EXISTS idx_sync_outbox_aggregate ON sync_outbox(aggregate, aggregate_id)", database: database)
+
+            try execute("""
+            CREATE TABLE IF NOT EXISTS sync_metadata (
+              aggregate TEXT NOT NULL,
+              aggregate_id TEXT NOT NULL,
+              external_reference TEXT,
+              revision TEXT,
+              remote_updated_at REAL,
+              last_pulled_at REAL,
+              last_pushed_at REAL,
+              has_local_changes INTEGER NOT NULL,
+              updated_at REAL NOT NULL,
+              json BLOB NOT NULL,
+              PRIMARY KEY(aggregate, aggregate_id)
+            )
+            """, database: database)
+            try execute("CREATE INDEX IF NOT EXISTS idx_sync_metadata_external_reference ON sync_metadata(external_reference)", database: database)
+            try execute("CREATE INDEX IF NOT EXISTS idx_sync_metadata_local_changes ON sync_metadata(has_local_changes, updated_at DESC)", database: database)
+
+            try execute("""
+            CREATE TABLE IF NOT EXISTS sync_cursors (
+              scope TEXT PRIMARY KEY NOT NULL,
+              cursor TEXT,
+              updated_at REAL NOT NULL,
+              json BLOB NOT NULL
+            )
+            """, database: database)
+
+            try execute("PRAGMA user_version = 3", database: database)
             try execute("COMMIT", database: database)
         } catch {
             try? execute("ROLLBACK", database: database)
@@ -471,6 +668,21 @@ public actor SQLiteStore: ProjectStore, TaskStore, RunStore, EventStore {
         }
 
         return try body(statement)
+    }
+
+    private func bindSyncOutboxEntry(_ entry: SyncOutboxEntry, in statement: OpaquePointer) throws {
+        try bind(entry.id, to: 1, in: statement)
+        try bind(entry.aggregate.rawValue, to: 2, in: statement)
+        try bind(entry.aggregateID, to: 3, in: statement)
+        try bind(entry.operation.rawValue, to: 4, in: statement)
+        try bind(entry.status.rawValue, to: 5, in: statement)
+        try bind(entry.attemptCount, to: 6, in: statement)
+        try bind(entry.availableAt, to: 7, in: statement)
+        try bind(entry.lastError, to: 8, in: statement)
+        try bind(entry.externalReference, to: 9, in: statement)
+        try bind(entry.createdAt, to: 10, in: statement)
+        try bind(entry.updatedAt, to: 11, in: statement)
+        try bindEncoded(entry, to: 12, in: statement)
     }
 
     private func bind(_ value: String?, to index: Int32, in statement: OpaquePointer) throws {

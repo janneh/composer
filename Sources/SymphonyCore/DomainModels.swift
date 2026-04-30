@@ -417,6 +417,61 @@ public struct SyncPullBatch: Codable, Hashable, Sendable {
     }
 }
 
+public struct SyncMetadataRecord: Identifiable, Codable, Hashable, Sendable {
+    public var aggregate: SyncOutboxAggregate
+    public var aggregateID: String
+    public var externalReference: String?
+    public var version: SyncRecordVersion
+    public var lastPulledAt: Date?
+    public var lastPushedAt: Date?
+    public var hasLocalChanges: Bool
+    public var updatedAt: Date
+
+    public var id: String {
+        "\(aggregate.rawValue):\(aggregateID)"
+    }
+
+    public init(
+        aggregate: SyncOutboxAggregate,
+        aggregateID: String,
+        externalReference: String? = nil,
+        version: SyncRecordVersion = SyncRecordVersion(),
+        lastPulledAt: Date? = nil,
+        lastPushedAt: Date? = nil,
+        hasLocalChanges: Bool = false,
+        updatedAt: Date = Date()
+    ) {
+        self.aggregate = aggregate
+        self.aggregateID = aggregateID
+        self.externalReference = externalReference
+        self.version = version
+        self.lastPulledAt = lastPulledAt
+        self.lastPushedAt = lastPushedAt
+        self.hasLocalChanges = hasLocalChanges
+        self.updatedAt = updatedAt
+    }
+}
+
+public struct SyncCursorRecord: Identifiable, Codable, Hashable, Sendable {
+    public var scope: String
+    public var cursor: SyncCursor?
+    public var updatedAt: Date
+
+    public var id: String {
+        scope
+    }
+
+    public init(
+        scope: String,
+        cursor: SyncCursor? = nil,
+        updatedAt: Date = Date()
+    ) {
+        self.scope = scope
+        self.cursor = cursor
+        self.updatedAt = updatedAt
+    }
+}
+
 public struct SyncOutboxEntry: Identifiable, Codable, Hashable, Sendable {
     public var id: String
     public var aggregate: SyncOutboxAggregate

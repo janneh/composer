@@ -108,6 +108,13 @@ public protocol SyncOutboxStore: Sendable {
     func updateSyncOutboxEntry(_ entry: SyncOutboxEntry) async throws
 }
 
+public protocol SyncMetadataStore: Sendable {
+    func upsertSyncMetadataRecord(_ record: SyncMetadataRecord) async throws
+    func syncMetadataRecord(aggregate: SyncOutboxAggregate, aggregateID: String) async throws -> SyncMetadataRecord?
+    func upsertSyncCursorRecord(_ record: SyncCursorRecord) async throws
+    func syncCursorRecord(scope: String) async throws -> SyncCursorRecord?
+}
+
 public protocol SyncOutboxTransport: Sendable {
     func push(_ entry: SyncOutboxEntry) async throws -> SyncOutboxReceipt
 }

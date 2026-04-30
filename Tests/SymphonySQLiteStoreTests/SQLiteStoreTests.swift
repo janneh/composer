@@ -155,6 +155,74 @@ final class SQLiteStoreTests: XCTestCase {
         XCTAssertEqual(events.map(\.message), ["Second", "First"])
     }
 
+    func testPersistsSyncOutboxEntries() async throws {
+        let store = try makeStore()
+        let date = Date(timeIntervalSince1970: 100)
+        let due = SyncOutboxEntry(
+            id: "outbox-1",
+            aggregate: .task,
+            aggregateID: "task-1",
+            operation: .update,
+            payload: ["state": "ready"],
+            availableAt: date,
+            createdAt: date,
+            updatedAt: date
+        )
+        let future = SyncOutboxEntry(
+            id: "outbox-2",
+            aggregate: .project,
+            aggregateID: "project-1",
+            operation: .update,
+            availableAt: date.addingTimeInterval(60),
+            createdAt: date.addingTimeInterval(1),
+            updatedAt: date.addingTimeInterval(1)
+        )
+
+        try await store.enqueueSyncOutboxEntry(future)
+        try await store.enqueueSyncOutboxEntry(due)
+
+        let pending = try await store.listPendingSyncOutboxEntries(limit: 10, now: date)
+        XCTAssertEqual(pending, [due])
+
+        var sent = due
+        sent.status = .sent
+        sent.externalReference = "remote-task-1"
+        sent.receiptMetadata = ["revision": "2"]
+        sent.updatedAt = date.addingTimeInterval(10)
+        try await store.updateSyncOutboxEntry(sent)
+
+        let remaining = try await store.listPendingSyncOutboxEntries(limit: 10, now: date.addingTimeInterval(120))
+        XCTAssertEqual(remaining, [future])
+    }
+
+    func testPersistsSyncMetadataAndCursors() async throws {
+        let store = try makeStore()
+        let date = Date(timeIntervalSince1970: 100)
+        let record = SyncMetadataRecord(
+            aggregate: .task,
+            aggregateID: "task-1",
+            externalReference: "linear-task-1",
+            version: SyncRecordVersion(revision: "rev-1", updatedAt: date),
+            lastPulledAt: date.addingTimeInterval(10),
+            lastPushedAt: date.addingTimeInterval(20),
+            hasLocalChanges: true,
+            updatedAt: date.addingTimeInterval(30)
+        )
+        let cursor = SyncCursorRecord(
+            scope: "linear:team-1",
+            cursor: "cursor-1",
+            updatedAt: date.addingTimeInterval(40)
+        )
+
+        try await store.upsertSyncMetadataRecord(record)
+        try await store.upsertSyncCursorRecord(cursor)
+
+        let persistedRecord = try await store.syncMetadataRecord(aggregate: .task, aggregateID: "task-1")
+        let persistedCursor = try await store.syncCursorRecord(scope: "linear:team-1")
+        XCTAssertEqual(persistedRecord, record)
+        XCTAssertEqual(persistedCursor, cursor)
+    }
+
     private func makeStore() throws -> SQLiteStore {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("composer-sqlite-tests-\(UUID().uuidString)", isDirectory: true)
