@@ -87,7 +87,7 @@ Composer is a native macOS control plane for Symphony-style coding-agent orchest
 ### 5. Background Execution
 
 - [x] Split runtime composition from SwiftUI app lifecycle.
-- [ ] Add XPC boundary.
+- [x] Add XPC boundary.
 - [ ] Add helper/LaunchAgent process.
 - [ ] Keep active runs alive when the main window closes.
 

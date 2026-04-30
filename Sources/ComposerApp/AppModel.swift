@@ -18,7 +18,7 @@ final class AppModel: ObservableObject {
 
     private let runtimeEnvironment: AppRuntimeEnvironment
     private let store: any ComposerStore
-    private let orchestrator: Orchestrator
+    private let runtimeService: any RuntimeService
     private let workflowLoader: WorkflowLoader
     private var storeChangeTask: Task<Void, Never>?
     private var reloadTask: Task<Void, Never>?
@@ -28,7 +28,7 @@ final class AppModel: ObservableObject {
     init(runtimeEnvironment: AppRuntimeEnvironment = .live()) {
         self.runtimeEnvironment = runtimeEnvironment
         store = runtimeEnvironment.store
-        orchestrator = runtimeEnvironment.orchestrator
+        runtimeService = runtimeEnvironment.runtimeService
         workflowLoader = runtimeEnvironment.workflowLoader
         storageBackend = runtimeEnvironment.storageBackend
         storeFileURL = runtimeEnvironment.storeFileURL
@@ -215,7 +215,7 @@ final class AppModel: ObservableObject {
 
     func dispatchPreview() async -> DispatchPlan? {
         do {
-            return try await orchestrator.previewDispatch(projectID: selectedProjectID)
+            return try await runtimeService.previewDispatch(projectID: selectedProjectID)
         } catch {
             errorMessage = error.localizedDescription
             return nil

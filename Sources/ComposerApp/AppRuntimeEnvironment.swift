@@ -7,7 +7,7 @@ import SymphonyWorkflow
 
 struct AppRuntimeEnvironment {
     var storeSelection: StoreSelection
-    var orchestrator: Orchestrator
+    var runtimeService: any RuntimeService
     var workflowLoader: WorkflowLoader
     var startupWarning: String?
 
@@ -26,17 +26,19 @@ struct AppRuntimeEnvironment {
     init(
         storeSelection: StoreSelection,
         workflowLoader: WorkflowLoader = WorkflowLoader(),
+        runtimeService: (any RuntimeService)? = nil,
         runners: [any AgentRunner]? = nil,
         startupWarning: String? = nil
     ) {
         self.storeSelection = storeSelection
         self.workflowLoader = workflowLoader
         self.startupWarning = startupWarning
-        orchestrator = Orchestrator(
+        let orchestrator = Orchestrator(
             taskStore: storeSelection.store,
             projectStore: storeSelection.store,
             runners: runners ?? Self.defaultPreviewRunners()
         )
+        self.runtimeService = runtimeService ?? LocalRuntimeService(orchestrator: orchestrator)
     }
 
     static func live(workflowLoader: WorkflowLoader = WorkflowLoader()) -> AppRuntimeEnvironment {

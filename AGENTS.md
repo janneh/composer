@@ -92,6 +92,7 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 - `SymphonyRuntime.Orchestrator.dispatchReady` creates queued/running run records, prepares a workspace, renders a run-aware prompt, starts the selected runner, moves the task to running, and appends runtime events.
 - `SymphonyRuntime.AgentRunEventProjection` maps provider-neutral agent events into persisted runtime events and run status updates.
 - `SymphonyRuntime.Orchestrator` also owns run cancellation, retry requeueing, stalled-run marking, and resume dispatch for runners that advertise resume support.
+- `SymphonyRuntime.LocalRuntimeService` and the runtime XPC request/response codec are the boundary for app/helper runtime calls; keep direct `Orchestrator` use behind that service when wiring process boundaries.
 - Project defaults and task preferred agents can carry provider kind, model, profile, and string parameters; keep provider-specific interpretation inside provider packages.
 - `AppRuntimeEnvironment` owns app-edge storage/orchestrator composition; keep SwiftUI app lifecycle code focused on window/model setup.
 - `SymphonyCodexAgent.CodexAgentRunner` wraps `codex exec --json` and maps JSONL output into normalized `AgentRunEvent` values.
