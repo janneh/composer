@@ -277,6 +277,7 @@ public enum RuntimeEventKind: String, Codable, Hashable, Sendable {
     case taskCreated
     case taskUpdated
     case taskMoved
+    case taskDeleted
     case runQueued
     case runStarted
     case runEvent

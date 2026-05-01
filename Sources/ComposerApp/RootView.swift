@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import SwiftUI
 import ComposerStorage
 import SymphonyCore
@@ -13,13 +14,33 @@ struct RootView: View {
 
     var body: some View {
         NavigationSplitView {
-            SidebarView()
-                .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 280)
+            SidebarView(
+                onNewProject: { showingNewProject = true },
+                onNewTask: createTask,
+                onDispatchPreview: presentDispatchPreview,
+                onDispatchReady: dispatchReady,
+                onRefresh: refresh
+            )
+            .navigationSplitViewColumnWidth(min: 240, ideal: 260, max: 300)
         } detail: {
-            ProjectWorkspaceView()
+            ProjectWorkspaceView(
+                onNewTask: createTask,
+                onDispatchPreview: presentDispatchPreview,
+                onDispatchReady: dispatchReady,
+                onEditProject: { editingProject = model.selectedProject }
+            )
         }
         .navigationSplitViewStyle(.balanced)
-        .frame(minWidth: 760, minHeight: 560)
+        .frame(minWidth: 920, minHeight: 620)
+        .background {
+            ComposerMaterialBackground(tint: ComposerTheme.sidebarBackground, tintOpacity: 0.72)
+        }
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(ComposerTheme.strongBorder)
+                .frame(height: 1)
+                .allowsHitTesting(false)
+        }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button {
@@ -40,9 +61,7 @@ struct RootView: View {
                 .help("Project Settings")
 
                 Button {
-                    Task {
-                        await model.createTask()
-                    }
+                    createTask()
                 } label: {
                     Label("New Task", systemImage: "plus")
                         .labelStyle(.iconOnly)
@@ -51,11 +70,7 @@ struct RootView: View {
                 .help("New Task")
 
                 Button {
-                    Task {
-                        if let plan = await model.dispatchPreview() {
-                            dispatchPreview = DispatchPreviewPresentation(plan: plan)
-                        }
-                    }
+                    presentDispatchPreview()
                 } label: {
                     Label("Dispatch Preview", systemImage: "play")
                         .labelStyle(.iconOnly)
@@ -64,9 +79,7 @@ struct RootView: View {
                 .help("Dispatch Preview")
 
                 Button {
-                    Task {
-                        _ = await model.dispatchReady()
-                    }
+                    dispatchReady()
                 } label: {
                     Label("Dispatch Ready", systemImage: "play.fill")
                         .labelStyle(.iconOnly)
@@ -75,9 +88,7 @@ struct RootView: View {
                 .help("Dispatch Ready")
 
                 Button {
-                    Task {
-                        await model.reload()
-                    }
+                    refresh()
                 } label: {
                     Label("Refresh", systemImage: "arrow.clockwise")
                         .labelStyle(.iconOnly)
@@ -85,6 +96,9 @@ struct RootView: View {
                 .help("Refresh")
             }
         }
+        .toolbarBackground(.regularMaterial, for: .windowToolbar)
+        .toolbarBackground(.visible, for: .windowToolbar)
+        .composerWindowMaterial()
         .sheet(isPresented: $showingNewProject) {
             ProjectEditorSheet(title: "New Project") { draft in
                 Task {
@@ -129,12 +143,110 @@ struct RootView: View {
             }
         )
     }
+
+    private func createTask() {
+        Task {
+            await model.createTask()
+        }
+    }
+
+    private func presentDispatchPreview() {
+        Task { @MainActor in
+            if let plan = await model.dispatchPreview() {
+                dispatchPreview = DispatchPreviewPresentation(plan: plan)
+            }
+        }
+    }
+
+    private func dispatchReady() {
+        Task {
+            _ = await model.dispatchReady()
+        }
+    }
+
+    private func refresh() {
+        Task {
+            await model.reload()
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func composerWindowMaterial() -> some View {
+        if #available(macOS 15.0, *) {
+            self.containerBackground(.regularMaterial, for: .window)
+        } else {
+            self
+        }
+    }
 }
 
 private struct DispatchPreviewPresentation: Identifiable {
     var id = UUID()
     var plan: DispatchPlan
     var generatedAt = Date()
+}
+
+private enum ComposerTheme {
+    static let canvas = Color.dynamicComposerColor(light: 0xFFFFFF, dark: 0x101012)
+    static let windowChrome = Color.dynamicComposerColor(light: 0xFFFFFF, dark: 0x202024)
+    static let sidebarBackground = Color.dynamicComposerColor(light: 0xF4F4F6, dark: 0x19191C)
+    static let panelBackground = Color.dynamicComposerColor(light: 0xFFFFFF, dark: 0x202024)
+    static let raisedPanelBackground = Color.dynamicComposerColor(light: 0xFBFBFC, dark: 0x242428)
+    static let subtlePanelBackground = Color.dynamicComposerColor(light: 0xF5F5F6, dark: 0x2A2A2E)
+    static let border = Color.dynamicComposerColor(light: 0xE7E7EA, dark: 0x34343A)
+    static let strongBorder = Color.dynamicComposerColor(light: 0xD9D9DE, dark: 0x45454C)
+    static let mutedText = Color.dynamicComposerColor(light: 0x898A90, dark: 0xA5A6AD)
+    static let quietText = Color.dynamicComposerColor(light: 0xB0B1B6, dark: 0x73747B)
+    static let accent = Color.dynamicComposerColor(light: 0x2487FF, dark: 0x5EA2FF)
+    static let sendButton = Color.dynamicComposerColor(light: 0x8D8F94, dark: 0x6E7077)
+
+    static let titleFont = Font.system(size: 28, weight: .medium)
+    static let sectionFont = Font.system(size: 13, weight: .regular)
+    static let bodyFont = Font.system(size: 14, weight: .regular)
+    static let smallFont = Font.system(size: 12, weight: .regular)
+    static let labelFont = Font.system(size: 12, weight: .medium)
+    static let chipFont = Font.system(size: 13, weight: .regular)
+
+    static let smallRadius: CGFloat = 6
+    static let cardRadius: CGFloat = 8
+    static let panelRadius: CGFloat = 8
+}
+
+private struct ComposerMaterialBackground: View {
+    var tint: Color
+    var tintOpacity: Double
+
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(.regularMaterial)
+            tint
+                .opacity(tintOpacity)
+        }
+        .ignoresSafeArea()
+    }
+}
+
+private extension Color {
+    static func dynamicComposerColor(light: UInt32, dark: UInt32) -> Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            let bestMatch = appearance.bestMatch(from: [.darkAqua, .aqua])
+            return NSColor(hex: bestMatch == .darkAqua ? dark : light)
+        })
+    }
+}
+
+private extension NSColor {
+    convenience init(hex: UInt32, alpha: CGFloat = 1) {
+        self.init(
+            calibratedRed: CGFloat((hex >> 16) & 0xFF) / 255,
+            green: CGFloat((hex >> 8) & 0xFF) / 255,
+            blue: CGFloat(hex & 0xFF) / 255,
+            alpha: alpha
+        )
+    }
 }
 
 private struct DispatchPreviewSheet: View {
@@ -421,52 +533,148 @@ private struct ProjectDraft: Identifiable {
 private struct SidebarView: View {
     @EnvironmentObject private var model: AppModel
 
+    var onNewProject: () -> Void
+    var onNewTask: () -> Void
+    var onDispatchPreview: () -> Void
+    var onDispatchReady: () -> Void
+    var onRefresh: () -> Void
+
     var body: some View {
-        List(selection: Binding<ProjectID?>(
-            get: { model.selectedProjectID },
-            set: { newValue in
-                guard let project = model.projects.first(where: { $0.id == newValue }) else {
-                    return
-                }
-                Task {
-                    await model.selectProject(project)
-                }
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 6) {
+                SidebarActionButton(title: "New task", systemImage: "square.and.pencil", action: onNewTask)
+                    .disabled(model.selectedProject == nil)
+                SidebarActionButton(title: "Dispatch ready", systemImage: "play.circle", action: onDispatchReady)
+                    .disabled(model.selectedProject == nil || !model.canDispatchReady)
+                SidebarActionButton(title: "Preview dispatch", systemImage: "clock.arrow.circlepath", action: onDispatchPreview)
+                    .disabled(model.selectedProject == nil)
+                SidebarActionButton(title: "Refresh", systemImage: "arrow.clockwise", action: onRefresh)
             }
-        )) {
-            Section("Projects") {
-                ForEach(model.projects) { project in
-                    SidebarProjectRow(project: project)
-                        .tag(project.id)
+            .padding(.horizontal, 18)
+            .padding(.top, 18)
+            .padding(.bottom, 28)
+
+            HStack {
+                SidebarSectionTitle("Projects")
+                Spacer()
+                Button(action: onNewProject) {
+                    Image(systemName: "square.and.pencil")
+                        .font(.system(size: 13, weight: .medium))
                 }
+                .buttonStyle(.plain)
+                .foregroundStyle(ComposerTheme.mutedText)
+                .help("New Project")
             }
-        }
-        .navigationTitle("Composer")
-        .safeAreaInset(edge: .bottom) {
+            .padding(.horizontal, 22)
+            .padding(.bottom, 10)
+
+            ScrollView {
+                LazyVStack(spacing: 2) {
+                    ForEach(model.projects) { project in
+                        Button {
+                            Task {
+                                await model.selectProject(project)
+                            }
+                        } label: {
+                            SidebarProjectRow(
+                                project: project,
+                                isSelected: model.selectedProjectID == project.id
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 14)
+            }
+
+            Spacer(minLength: 12)
+
             StorageFooterView(backend: model.storageBackend, fileURL: model.storeFileURL)
         }
+        .font(ComposerTheme.bodyFont)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background {
+            ComposerMaterialBackground(tint: ComposerTheme.sidebarBackground, tintOpacity: 0.72)
+        }
+        .navigationTitle("")
+    }
+}
+
+private struct SidebarActionButton: View {
+    var title: String
+    var systemImage: String
+    var action: () -> Void
+
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 15, weight: .regular))
+                    .frame(width: 18)
+
+                Text(title)
+                    .font(.system(size: 15, weight: .regular))
+                    .lineLimit(1)
+
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(isEnabled ? Color.primary : ComposerTheme.quietText)
+            .padding(.horizontal, 4)
+            .frame(height: 32)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct SidebarSectionTitle: View {
+    var title: String
+
+    init(_ title: String) {
+        self.title = title
+    }
+
+    var body: some View {
+        Text(title)
+            .font(.system(size: 14, weight: .regular))
+            .foregroundStyle(ComposerTheme.quietText)
     }
 }
 
 private struct SidebarProjectRow: View {
     var project: Project
+    var isSelected: Bool
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "folder")
-                .foregroundStyle(.secondary)
-                .frame(width: 16)
+        HStack(spacing: 12) {
+            Image(systemName: "folder.badge.gearshape")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(ComposerTheme.mutedText)
+                .frame(width: 18)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(project.name)
+                    .font(.system(size: 15, weight: .regular))
                     .lineLimit(1)
 
                 Text(project.repositoryPath?.abbreviatedPath ?? "No repository")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(ComposerTheme.smallFont)
+                    .foregroundStyle(ComposerTheme.mutedText)
                     .lineLimit(1)
             }
+
+            Spacer(minLength: 0)
         }
-        .padding(.vertical, 2)
+        .padding(.horizontal, 8)
+        .frame(height: 44)
+        .background(isSelected ? ComposerTheme.panelBackground.opacity(0.82) : Color.clear)
+        .overlay(
+            RoundedRectangle(cornerRadius: ComposerTheme.cardRadius)
+                .stroke(isSelected ? ComposerTheme.border : Color.clear, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: ComposerTheme.cardRadius))
     }
 }
 
@@ -475,134 +683,422 @@ private struct StorageFooterView: View {
     var fileURL: URL
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Label(backend.title, systemImage: "externaldrive")
-                .fontWeight(.medium)
-            Text(fileURL.path.abbreviatedPath)
-                .lineLimit(2)
+        HStack(spacing: 12) {
+            Image(systemName: "gearshape")
+                .font(.system(size: 16, weight: .regular))
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(backend.title)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(Color.primary)
+                Text(fileURL.path.abbreviatedPath)
+                    .font(ComposerTheme.smallFont)
+                    .foregroundStyle(ComposerTheme.mutedText)
+                    .lineLimit(1)
+            }
         }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .foregroundStyle(Color.primary)
+        .padding(.horizontal, 22)
+        .padding(.vertical, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.bar)
     }
 }
 
 private struct ProjectWorkspaceView: View {
     @EnvironmentObject private var model: AppModel
+    @State private var taskPendingDeletion: WorkItem?
+    @SceneStorage("Composer.ProjectWorkspace.isTaskMenuVisible")
+    private var isTaskMenuVisible = false
+
+    var onNewTask: () -> Void
+    var onDispatchPreview: () -> Void
+    var onDispatchReady: () -> Void
+    var onEditProject: () -> Void
 
     var body: some View {
         Group {
             if let project = model.selectedProject {
                 GeometryReader { geometry in
-                    VStack(spacing: 0) {
-                        ProjectHeaderView(project: project, taskCount: model.tasks.count)
-
-                        if !model.workflowDiagnostics.isEmpty {
-                            WorkflowDiagnosticsBanner(diagnostics: model.workflowDiagnostics)
-                        }
-
-                        Divider()
-
-                        if geometry.size.width < 860 {
-                            VSplitView {
-                                BoardView()
-                                    .frame(minHeight: 260)
-
-                                InspectorView(task: model.selectedTask)
-                                    .frame(minHeight: 220)
-                            }
-                        } else {
-                            HSplitView {
-                                BoardView()
-                                    .frame(minWidth: 520)
-
-                                InspectorView(task: model.selectedTask)
-                                    .frame(minWidth: 300, idealWidth: 340, maxWidth: 420)
-                            }
-                        }
-                    }
-                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    projectWorkspace(project: project, size: geometry.size)
                 }
             } else {
                 ContentUnavailableView("No Project Selected", systemImage: "folder")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(ComposerTheme.canvas)
         .navigationTitle(model.selectedProject?.name ?? "Board")
+        .onChange(of: model.selectedTaskID) { _, newValue in
+            isTaskMenuVisible = newValue != nil
+        }
+        .alert(
+            "Delete Task?",
+            isPresented: deleteConfirmationBinding,
+            presenting: taskPendingDeletion
+        ) { task in
+            Button("Delete", role: .destructive) {
+                deleteTask(task)
+            }
+            Button("Cancel", role: .cancel) {
+                taskPendingDeletion = nil
+            }
+        } message: { task in
+            Text("This removes \(task.identifier), its run records, and any dependency references to it. This cannot be undone.")
+        }
+    }
+
+    private func projectWorkspace(project: Project, size: CGSize) -> some View {
+        VStack(spacing: 0) {
+            ProjectHeaderView(
+                project: project,
+                taskCount: model.tasks.count,
+                canDispatchReady: model.canDispatchReady,
+                onNewTask: onNewTask,
+                onDispatchPreview: onDispatchPreview,
+                onDispatchReady: onDispatchReady,
+                onEditProject: onEditProject,
+                isTaskMenuVisible: showsTaskMenu,
+                hasSelectedTask: model.selectedTask != nil,
+                onToggleTaskMenu: toggleTaskMenu
+            )
+
+            workspaceContent(width: size.width)
+        }
+        .frame(width: size.width, height: size.height)
+    }
+
+    private func workspaceContent(width: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 22) {
+            if !model.workflowDiagnostics.isEmpty {
+                WorkflowDiagnosticsBanner(diagnostics: model.workflowDiagnostics)
+            }
+
+            workspaceMainLayout(width: width)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .padding(.horizontal, 28)
+        .padding(.top, 22)
+        .padding(.bottom, 26)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    @ViewBuilder
+    private func workspaceMainLayout(width: CGFloat) -> some View {
+        if width < 900 {
+            VStack(alignment: .leading, spacing: 18) {
+                boardPane()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+                if showsTaskMenu {
+                    inspectorPane()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                }
+            }
+        } else {
+            HStack(alignment: .top, spacing: 18) {
+                boardPane()
+                    .frame(minWidth: 560, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+                if showsTaskMenu {
+                    inspectorPane()
+                        .frame(width: 360)
+                        .frame(maxHeight: .infinity, alignment: .top)
+                }
+            }
+        }
+    }
+
+    private func boardPane() -> some View {
+        BoardView(
+            onSelectTask: selectTask,
+            onDeleteTask: requestTaskDeletion
+        )
+    }
+
+    private func inspectorPane() -> some View {
+        InspectorView(
+            task: model.selectedTask,
+            onClose: closeTaskMenu,
+            onDeleteTask: requestTaskDeletion
+        )
+    }
+
+    private var showsTaskMenu: Bool {
+        isTaskMenuVisible && model.selectedTask != nil
+    }
+
+    private var deleteConfirmationBinding: Binding<Bool> {
+        Binding(
+            get: { taskPendingDeletion != nil },
+            set: { isPresented in
+                if !isPresented {
+                    taskPendingDeletion = nil
+                }
+            }
+        )
+    }
+
+    private func selectTask(_ task: WorkItem) {
+        model.selectTask(task)
+        isTaskMenuVisible = true
+    }
+
+    private func closeTaskMenu() {
+        isTaskMenuVisible = false
+    }
+
+    private func toggleTaskMenu() {
+        guard model.selectedTask != nil else {
+            return
+        }
+        isTaskMenuVisible.toggle()
+    }
+
+    private func requestTaskDeletion(_ task: WorkItem) {
+        taskPendingDeletion = task
+    }
+
+    private func deleteTask(_ task: WorkItem) {
+        taskPendingDeletion = nil
+        if model.selectedTaskID == task.id {
+            isTaskMenuVisible = false
+        }
+        Task {
+            await model.deleteTask(task)
+        }
     }
 }
 
 private struct ProjectHeaderView: View {
     var project: Project
     var taskCount: Int
+    var canDispatchReady: Bool
+    var onNewTask: () -> Void
+    var onDispatchPreview: () -> Void
+    var onDispatchReady: () -> Void
+    var onEditProject: () -> Void
+    var isTaskMenuVisible: Bool
+    var hasSelectedTask: Bool
+    var onToggleTaskMenu: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(project.name)
-                    .font(.headline)
-                    .lineLimit(1)
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                HeaderActionButton(
+                    title: "New task",
+                    systemImage: "plus",
+                    action: onNewTask
+                )
 
-                Text(project.repositoryPath?.abbreviatedPath ?? "Set a repository path in Project Settings")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HeaderActionButton(
+                    title: "Dispatch preview",
+                    systemImage: "play",
+                    action: onDispatchPreview
+                )
+
+                HeaderActionButton(
+                    title: "Dispatch ready",
+                    systemImage: "play.fill",
+                    action: onDispatchReady,
+                    isProminent: true
+                )
+                .disabled(!canDispatchReady)
+
+                Spacer(minLength: 8)
+
+                Button(action: onEditProject) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 15, weight: .medium))
+                        .frame(width: 30, height: 30)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(ComposerTheme.mutedText)
+                .help("Project Settings")
+
+                Button(action: onToggleTaskMenu) {
+                    Image(systemName: "rectangle.rightthird.inset.filled")
+                        .font(.system(size: 15, weight: .medium))
+                        .frame(width: 30, height: 30)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(isTaskMenuVisible ? ComposerTheme.accent : ComposerTheme.mutedText)
+                .disabled(!hasSelectedTask)
+                .help(isTaskMenuVisible ? "Close Task Menu" : "Open Task Menu")
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
+
+            Divider()
+
+            HStack(spacing: 16) {
+                ProjectMetaChip(
+                    title: project.repositoryPath?.abbreviatedPath ?? "No repository",
+                    systemImage: "folder.badge.gearshape"
+                )
+
+                ProjectMetaChip(
+                    title: project.defaultAgent.kind.title,
+                    systemImage: agentIcon
+                )
+
+                ProjectMetaChip(
+                    title: "\(taskCount) \(taskCount == 1 ? "task" : "tasks")",
+                    systemImage: "rectangle.stack"
+                )
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+            .background(ComposerTheme.subtlePanelBackground.opacity(0.72))
+        }
+        .frame(maxWidth: .infinity)
+        .background {
+            ComposerMaterialBackground(tint: ComposerTheme.windowChrome, tintOpacity: 0.70)
+        }
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(ComposerTheme.border)
+                .frame(height: 1)
+        }
+    }
+
+    private var agentIcon: String {
+        switch project.defaultAgent.kind {
+        case .codex: "chevron.left.forwardslash.chevron.right"
+        case .claude: "sparkles"
+        case .gemini: "diamond"
+        case .custom: "wrench.adjustable"
+        }
+    }
+}
+
+private struct HeaderActionButton: View {
+    var title: String
+    var systemImage: String
+    var action: () -> Void
+    var isProminent = false
+
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 14, weight: .medium))
+
+                Text(title)
+                    .font(.system(size: 14, weight: .regular))
                     .lineLimit(1)
             }
-
-            Spacer(minLength: 12)
-
-            Text("\(taskCount) \(taskCount == 1 ? "task" : "tasks")")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 10)
+            .frame(height: 32)
+            .contentShape(RoundedRectangle(cornerRadius: ComposerTheme.smallRadius))
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(.bar)
+        .buttonStyle(.plain)
+    }
+
+    private var foreground: Color {
+        guard isEnabled else {
+            return ComposerTheme.quietText
+        }
+        return isProminent ? ComposerTheme.accent : Color.primary
+    }
+}
+
+private struct ProjectMetaChip: View {
+    var title: String
+    var systemImage: String
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .regular))
+            Text(title)
+                .font(ComposerTheme.chipFont)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+        .foregroundStyle(ComposerTheme.mutedText)
     }
 }
 
 private struct BoardView: View {
     @EnvironmentObject private var model: AppModel
 
+    var onSelectTask: (WorkItem) -> Void
+    var onDeleteTask: (WorkItem) -> Void
+
     var body: some View {
-        ScrollView([.horizontal, .vertical]) {
-            HStack(alignment: .top, spacing: 12) {
-                ForEach(WorkState.boardStates) { state in
-                    BoardColumn(state: state, tasks: model.tasks(in: state))
-                        .frame(width: 260)
+        GeometryReader { geometry in
+            ScrollView([.horizontal, .vertical]) {
+                HStack(alignment: .top, spacing: 14) {
+                    ForEach(WorkState.boardStates) { state in
+                        BoardColumn(
+                            state: state,
+                            tasks: model.tasks(in: state),
+                            onSelectTask: onSelectTask,
+                            onDeleteTask: onDeleteTask
+                        )
+                            .frame(width: 276)
+                    }
                 }
+                .padding(2)
+                .frame(minHeight: geometry.size.height, alignment: .topLeading)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .defaultScrollAnchor(.topLeading)
+            .background(Color.clear)
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .frame(minHeight: 160)
     }
 }
 
 private struct WorkflowDiagnosticsBanner: View {
     var diagnostics: [WorkflowDiagnostic]
+    @State private var isShowingWorkflowHelp = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            ForEach(Array(diagnostics.enumerated()), id: \.offset) { _, diagnostic in
-                Label {
-                    Text(diagnostic.message)
-                        .fixedSize(horizontal: false, vertical: true)
-                } icon: {
-                    Image(systemName: iconName(for: diagnostic.severity))
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(Array(diagnostics.enumerated()), id: \.offset) { _, diagnostic in
+                    Label {
+                        Text(diagnostic.message)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } icon: {
+                        Image(systemName: iconName(for: diagnostic.severity))
+                    }
+                    .font(.callout)
+                    .foregroundStyle(color(for: diagnostic.severity))
                 }
-                .font(.callout)
-                .foregroundStyle(color(for: diagnostic.severity))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button {
+                isShowingWorkflowHelp.toggle()
+            } label: {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 15, weight: .medium))
+                    .frame(width: 22, height: 22)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(color(for: diagnostics.first?.severity ?? .info))
+            .help("About WORKFLOW.md")
+            .popover(isPresented: $isShowingWorkflowHelp, arrowEdge: .top) {
+                WorkflowHelpPopover()
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(backgroundColor.opacity(0.12))
+        .background(backgroundColor.opacity(0.10))
+        .overlay(
+            RoundedRectangle(cornerRadius: ComposerTheme.cardRadius)
+                .stroke(backgroundColor.opacity(0.18), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: ComposerTheme.cardRadius))
     }
 
     private var backgroundColor: Color {
@@ -632,37 +1128,98 @@ private struct WorkflowDiagnosticsBanner: View {
     }
 }
 
+private struct WorkflowHelpPopover: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("About WORKFLOW.md")
+                .font(.system(size: 14, weight: .semibold))
+
+            Text("WORKFLOW.md is the project playbook Composer uses when it dispatches a task. It describes how an agent should turn a task into a run prompt, including project rules, expected steps, and any template variables Composer should fill in.")
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("Composer requires it before dispatch so every run has explicit project instructions instead of sending an underspecified task to an agent.")
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("To fix this:")
+                    .font(.system(size: 12, weight: .semibold))
+                WorkflowHelpStep("Set this project to a repository that contains WORKFLOW.md at its root.")
+                WorkflowHelpStep("Or set an explicit workflow path in Project Settings.")
+                WorkflowHelpStep("Create WORKFLOW.md, then use Refresh.")
+            }
+        }
+        .font(ComposerTheme.smallFont)
+        .foregroundStyle(Color.primary)
+        .padding(14)
+        .frame(width: 340, alignment: .leading)
+        .background(ComposerTheme.panelBackground)
+    }
+}
+
+private struct WorkflowHelpStep: View {
+    var text: String
+
+    init(_ text: String) {
+        self.text = text
+    }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 7) {
+            Image(systemName: "circle.fill")
+                .font(.system(size: 4))
+                .foregroundStyle(ComposerTheme.mutedText)
+            Text(text)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
 private struct BoardColumn: View {
     @EnvironmentObject private var model: AppModel
 
     var state: WorkState
     var tasks: [WorkItem]
+    var onSelectTask: (WorkItem) -> Void
+    var onDeleteTask: (WorkItem) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text(state.title)
-                    .font(.headline)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color.primary)
                 Spacer()
                 Text("\(tasks.count)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(ComposerTheme.smallFont)
+                    .foregroundStyle(ComposerTheme.mutedText)
                     .monospacedDigit()
+                    .padding(.horizontal, 7)
+                    .frame(height: 22)
+                    .background(ComposerTheme.subtlePanelBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: ComposerTheme.smallRadius))
             }
-            .frame(height: 28)
+            .frame(height: 26)
 
             if tasks.isEmpty {
                 Text("No tasks")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .font(ComposerTheme.bodyFont)
+                    .foregroundStyle(ComposerTheme.mutedText)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, 2)
+                    .padding(.vertical, 10)
             } else {
-                LazyVStack(spacing: 8) {
+                LazyVStack(spacing: 9) {
                     ForEach(tasks) { task in
                         TaskCard(task: task, isSelected: model.selectedTaskID == task.id)
                             .onTapGesture {
-                                model.selectTask(task)
+                                onSelectTask(task)
+                            }
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    onDeleteTask(task)
+                                } label: {
+                                    Label("Delete Task", systemImage: "trash")
+                                }
                             }
                             .draggable(task.id.rawValue)
                     }
@@ -670,10 +1227,14 @@ private struct BoardColumn: View {
                 .frame(maxWidth: .infinity, alignment: .top)
             }
         }
-        .padding(10)
+        .padding(12)
         .frame(minHeight: 132, alignment: .top)
         .background(columnBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: ComposerTheme.cardRadius)
+                .stroke(ComposerTheme.border, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: ComposerTheme.cardRadius))
         .dropDestination(for: String.self) { items, _ in
             guard let rawID = items.first,
                   let task = model.tasks.first(where: { $0.id.rawValue == rawID }) else {
@@ -690,9 +1251,9 @@ private struct BoardColumn: View {
     private var columnBackground: Color {
         switch state {
         case .running:
-            Color(nsColor: .controlAccentColor).opacity(0.10)
+            ComposerTheme.accent.opacity(0.08)
         default:
-            Color(nsColor: .controlBackgroundColor)
+            ComposerTheme.raisedPanelBackground
         }
     }
 }
@@ -702,19 +1263,17 @@ private struct TaskCard: View {
     var isSelected: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 9) {
             HStack(alignment: .firstTextBaseline) {
                 Text(task.identifier)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
+                    .font(ComposerTheme.labelFont)
+                    .foregroundStyle(ComposerTheme.mutedText)
                 Spacer(minLength: 8)
                 PriorityBadge(priority: task.priority)
             }
 
             Text(task.title)
-                .font(.callout)
-                .fontWeight(.medium)
+                .font(.system(size: 14, weight: .medium))
                 .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -726,7 +1285,7 @@ private struct TaskCard: View {
                 Image(systemName: agentIcon)
                     .imageScale(.small)
                 Text((task.preferredAgent?.kind.title ?? "Default"))
-                    .font(.caption)
+                    .font(ComposerTheme.smallFont)
                 Spacer()
                 if !task.blockedBy.isEmpty {
                     Image(systemName: "link.badge.plus")
@@ -734,16 +1293,17 @@ private struct TaskCard: View {
                         .foregroundStyle(.orange)
                 }
             }
-            .foregroundStyle(.secondary)
+            .foregroundStyle(ComposerTheme.mutedText)
         }
-        .padding(10)
+        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(nsColor: .textBackgroundColor))
+        .background(ComposerTheme.panelBackground)
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(isSelected ? Color.accentColor : Color(nsColor: .separatorColor), lineWidth: isSelected ? 2 : 1)
+            RoundedRectangle(cornerRadius: ComposerTheme.cardRadius)
+                .stroke(isSelected ? ComposerTheme.accent : ComposerTheme.border, lineWidth: isSelected ? 1.5 : 1)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .clipShape(RoundedRectangle(cornerRadius: ComposerTheme.cardRadius))
+        .shadow(color: .black.opacity(0.035), radius: 8, x: 0, y: 4)
     }
 
     private var agentIcon: String {
@@ -762,13 +1322,12 @@ private struct PriorityBadge: View {
 
     var body: some View {
         Text(priority.title)
-            .font(.caption2)
-            .fontWeight(.semibold)
+            .font(.system(size: 11, weight: .medium))
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
             .foregroundStyle(color)
             .background(color.opacity(0.12))
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: ComposerTheme.smallRadius))
     }
 
     private var color: Color {
@@ -788,14 +1347,15 @@ private struct LabelRow: View {
         FlowLayout(spacing: 4) {
             ForEach(labels, id: \.self) { label in
                 Text(label)
-                    .font(.caption2)
+                    .font(.system(size: 11, weight: .regular))
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
                     .frame(maxWidth: 132)
-                    .background(Color(nsColor: .quaternaryLabelColor).opacity(0.14))
-                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                    .foregroundStyle(ComposerTheme.mutedText)
+                    .background(ComposerTheme.subtlePanelBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: ComposerTheme.smallRadius))
             }
         }
     }
@@ -805,6 +1365,8 @@ private struct InspectorView: View {
     @EnvironmentObject private var model: AppModel
 
     var task: WorkItem?
+    var onClose: () -> Void
+    var onDeleteTask: (WorkItem) -> Void
     @State private var draft: TaskDraft?
 
     var body: some View {
@@ -815,6 +1377,7 @@ private struct InspectorView: View {
                     taskCandidates: model.tasks,
                     events: model.selectedTaskEvents,
                     draft: draftBinding(for: task),
+                    onClose: onClose,
                     onSave: { updated in
                         Task {
                             await model.updateTask(updated)
@@ -822,9 +1385,11 @@ private struct InspectorView: View {
                     },
                     onReset: {
                         draft = TaskDraft(task: task)
+                    },
+                    onDelete: {
+                        onDeleteTask(task)
                     }
                 )
-                .navigationTitle(task.title)
                 .onAppear {
                     resetDraftIfNeeded(for: task)
                 }
@@ -836,7 +1401,7 @@ private struct InspectorView: View {
             }
         }
         .frame(minWidth: 280)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(Color.clear)
     }
 
     private func draftBinding(for task: WorkItem) -> Binding<TaskDraft> {
@@ -862,32 +1427,41 @@ private struct InspectorView: View {
 
 private struct TaskEditorHeader: View {
     var task: WorkItem
+    var onClose: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(task.identifier)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
+                    .font(ComposerTheme.labelFont)
+                    .foregroundStyle(ComposerTheme.mutedText)
 
                 Text(task.state.title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(ComposerTheme.smallFont)
+                    .foregroundStyle(ComposerTheme.mutedText)
 
                 Spacer(minLength: 8)
 
                 PriorityBadge(priority: task.priority)
+
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .semibold))
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(ComposerTheme.mutedText)
+                .help("Close Task Menu")
             }
 
             Text(task.title)
-                .font(.headline)
+                .font(.system(size: 15, weight: .medium))
                 .lineLimit(2)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.bar)
+        .background(ComposerTheme.subtlePanelBackground)
     }
 }
 
@@ -896,12 +1470,14 @@ private struct TaskEditorView: View {
     var taskCandidates: [WorkItem]
     var events: [RuntimeEvent]
     @Binding var draft: TaskDraft
+    var onClose: () -> Void
     var onSave: (WorkItem) -> Void
     var onReset: () -> Void
+    var onDelete: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
-            TaskEditorHeader(task: task)
+            TaskEditorHeader(task: task, onClose: onClose)
 
             Divider()
 
@@ -983,12 +1559,16 @@ private struct TaskEditorView: View {
 
                 Section {
                     HStack {
+                        Button("Delete", role: .destructive) {
+                            onDelete()
+                        }
+
+                        Spacer()
+
                         Button("Revert") {
                             onReset()
                         }
                         .disabled(!draft.hasChanges(from: task))
-
-                        Spacer()
 
                         Button("Save") {
                             onSave(draft.apply(to: task))
@@ -999,7 +1579,15 @@ private struct TaskEditorView: View {
                 }
             }
             .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
+            .background(ComposerTheme.panelBackground)
         }
+        .background(ComposerTheme.panelBackground)
+        .overlay(
+            RoundedRectangle(cornerRadius: ComposerTheme.cardRadius)
+                .stroke(ComposerTheme.border, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: ComposerTheme.cardRadius))
     }
 
     private var dependencyCandidates: [WorkItem] {
@@ -1056,6 +1644,7 @@ private struct RuntimeEventRow: View {
         case .taskCreated: "plus.circle"
         case .taskUpdated: "pencil.circle"
         case .taskMoved: "arrow.right.circle"
+        case .taskDeleted: "trash.circle"
         case .runQueued: "clock"
         case .runStarted: "play.circle"
         case .runEvent: "terminal"
@@ -1067,6 +1656,8 @@ private struct RuntimeEventRow: View {
 
     private var iconColor: Color {
         switch event.kind {
+        case .taskDeleted:
+            .red
         case .runFailed:
             .red
         case .userInputRequired:

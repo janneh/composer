@@ -140,6 +140,43 @@ final class AppStorageConfigurationTests: XCTestCase {
     }
 
     @MainActor
+    func testAppModelDeletesTaskAndClearsDependencyReferences() async throws {
+        let storeURL = temporaryDirectory().appendingPathComponent("store.json")
+        let selection = try StoreFactory.makeStore(
+            configuration: StoreConfiguration(backend: .json, fileURL: storeURL)
+        )
+        let model = AppModel(storeSelection: selection)
+
+        await model.createProject(
+            name: "Composer",
+            repositoryPath: nil,
+            workflowPath: nil,
+            defaultAgent: .init(kind: .codex)
+        )
+        await model.createTask()
+        let deletedTask = try XCTUnwrap(model.selectedTask)
+
+        await model.createTask()
+        var dependentTask = try XCTUnwrap(model.selectedTask)
+        dependentTask.blockedBy = [deletedTask.id]
+        await model.updateTask(dependentTask)
+
+        model.selectTask(deletedTask)
+        await model.deleteTask(deletedTask)
+
+        XCTAssertFalse(model.tasks.contains { $0.id == deletedTask.id })
+        XCTAssertFalse(model.tasks.contains { $0.blockedBy.contains(deletedTask.id) })
+        XCTAssertNil(model.selectedTaskID)
+        XCTAssertTrue(model.selectedTaskEvents.isEmpty)
+
+        let events = try await selection.store.listEvents(taskID: nil, limit: 20)
+        XCTAssertTrue(events.contains { event in
+            event.kind == .taskDeleted &&
+            event.payload["taskID"] == deletedTask.id.rawValue
+        })
+    }
+
+    @MainActor
     func testAppModelClearsWorkflowDiagnosticsForValidWorkflow() async throws {
         let storeURL = temporaryDirectory().appendingPathComponent("store.json")
         let repositoryURL = temporaryDirectory()

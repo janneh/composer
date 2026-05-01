@@ -62,16 +62,18 @@ final class AppModel: ObservableObject {
 
     func reload() async {
         do {
-            projects = try await store.listProjects()
+            replaceProjects(try await store.listProjects())
             if projects.isEmpty {
                 try await createInitialProject()
-                projects = try await store.listProjects()
+                replaceProjects(try await store.listProjects())
             }
 
-            if let selectedProjectID, !projects.contains(where: { $0.id == selectedProjectID }) {
-                self.selectedProjectID = projects.first?.id
+            if let selectedProjectID {
+                if !projects.contains(where: { $0.id == selectedProjectID }) {
+                    self.selectedProjectID = projects.first?.id
+                }
             } else {
-                selectedProjectID = selectedProjectID ?? projects.first?.id
+                selectedProjectID = projects.first?.id
             }
 
             try await refreshTasks()
@@ -97,13 +99,12 @@ final class AppModel: ObservableObject {
     }
 
     func refreshTasks() async throws {
-        tasks = try await store.listTasks(projectID: selectedProjectID)
-        if selectedTaskID == nil {
-            selectedTaskID = tasks.first?.id
-        } else if let selectedTaskID, !tasks.contains(where: { $0.id == selectedTaskID }) {
-            self.selectedTaskID = tasks.first?.id
+        let loadedTasks = try await store.listTasks(projectID: selectedProjectID)
+        replaceTasks(loadedTasks)
+        if let selectedTaskID, !loadedTasks.contains(where: { $0.id == selectedTaskID }) {
+            self.selectedTaskID = nil
         }
-        selectedTaskEvents = try await loadSelectedTaskEvents()
+        replaceSelectedTaskEvents(try await loadSelectedTaskEvents())
     }
 
     func selectProject(_ project: Project) async {
@@ -141,7 +142,7 @@ final class AppModel: ObservableObject {
                 updatedAt: now
             )
             try await store.upsertProject(project)
-            projects = try await store.listProjects()
+            replaceProjects(try await store.listProjects())
             selectedProjectID = project.id
             selectedTaskID = nil
             try await refreshTasks()
@@ -156,7 +157,7 @@ final class AppModel: ObservableObject {
             var updated = project
             updated.updatedAt = Date()
             try await store.upsertProject(updated)
-            projects = try await store.listProjects()
+            replaceProjects(try await store.listProjects())
             selectedProjectID = updated.id
             try await refreshTasks()
             refreshWorkflowDiagnostics()
@@ -215,6 +216,53 @@ final class AppModel: ObservableObject {
         }
     }
 
+    func deleteTask(_ task: WorkItem) async {
+        do {
+            let now = Date()
+            var updatedTasksByID: [TaskID: WorkItem] = [:]
+            let dependentTasks = tasks.filter { $0.blockedBy.contains(task.id) }
+
+            for dependentTask in dependentTasks {
+                var updated = dependentTask
+                updated.blockedBy.removeAll { $0 == task.id }
+                updated.updatedAt = now
+                updatedTasksByID[updated.id] = updated
+                try await store.upsertTask(updated)
+                try await store.appendEvent(RuntimeEvent(
+                    taskID: updated.id,
+                    kind: .taskUpdated,
+                    message: "Removed dependency on deleted task \(task.identifier)"
+                ))
+            }
+
+            try await store.appendEvent(RuntimeEvent(
+                kind: .taskDeleted,
+                message: "Task \(task.identifier) deleted",
+                payload: [
+                    "taskID": task.id.rawValue,
+                    "identifier": task.identifier,
+                    "title": task.title
+                ]
+            ))
+            try await store.deleteTask(id: task.id)
+
+            if selectedTaskID == task.id {
+                selectedTaskID = nil
+            }
+
+            let remainingTasks = tasks.compactMap { existingTask -> WorkItem? in
+                if existingTask.id == task.id {
+                    return nil
+                }
+                return updatedTasksByID[existingTask.id] ?? existingTask
+            }
+            replaceTasks(Self.sortTasks(remainingTasks))
+            replaceSelectedTaskEvents(try await loadSelectedTaskEvents())
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func dispatchPreview() async -> DispatchPlan? {
         do {
             return try await runtimeService.previewDispatch(projectID: selectedProjectID)
@@ -261,7 +309,7 @@ final class AppModel: ObservableObject {
 
     private func refreshSelectedTaskEvents() async {
         do {
-            selectedTaskEvents = try await loadSelectedTaskEvents()
+            replaceSelectedTaskEvents(try await loadSelectedTaskEvents())
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -276,11 +324,11 @@ final class AppModel: ObservableObject {
 
     private func refreshWorkflowDiagnostics() {
         guard let selectedProject else {
-            workflowDiagnostics = []
+            replaceWorkflowDiagnostics([])
             return
         }
 
-        workflowDiagnostics = workflowLoader.validate(project: selectedProject)
+        replaceWorkflowDiagnostics(workflowLoader.validate(project: selectedProject))
     }
 
     private func createInitialProject() async throws {
@@ -289,5 +337,38 @@ final class AppModel: ObservableObject {
             defaultAgent: AgentConfiguration(kind: .codex, model: "default")
         )
         try await store.upsertProject(project)
+    }
+
+    private func replaceProjects(_ nextProjects: [Project]) {
+        if projects != nextProjects {
+            projects = nextProjects
+        }
+    }
+
+    private func replaceTasks(_ nextTasks: [WorkItem]) {
+        if tasks != nextTasks {
+            tasks = nextTasks
+        }
+    }
+
+    private func replaceSelectedTaskEvents(_ nextEvents: [RuntimeEvent]) {
+        if selectedTaskEvents != nextEvents {
+            selectedTaskEvents = nextEvents
+        }
+    }
+
+    private func replaceWorkflowDiagnostics(_ nextDiagnostics: [WorkflowDiagnostic]) {
+        if workflowDiagnostics != nextDiagnostics {
+            workflowDiagnostics = nextDiagnostics
+        }
+    }
+
+    private static func sortTasks(_ tasks: [WorkItem]) -> [WorkItem] {
+        tasks.sorted { lhs, rhs in
+            if lhs.priority.rawValue != rhs.priority.rawValue {
+                return lhs.priority.rawValue > rhs.priority.rawValue
+            }
+            return lhs.updatedAt > rhs.updatedAt
+        }
     }
 }
