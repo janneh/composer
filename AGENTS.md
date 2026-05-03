@@ -65,6 +65,8 @@ make install-helper
 make unload-helper
 make smoke-cli
 make smoke-cli-sqlite
+make ui-screenshots
+make ui-check
 ```
 
 `make app` builds the checked-in Xcode project and opens the resulting `Composer.app`. Use `make open-project` when working directly in Xcode.
@@ -77,6 +79,8 @@ composerctl task list
 ```
 
 `make helper` builds `composer-runtime-helper`. `make install-helper` installs it to `~/.local/bin`, renders the LaunchAgent plist into `~/Library/LaunchAgents`, and bootstraps it with `launchctl`; `make unload-helper` boots it out.
+
+`make ui-screenshots` builds a deterministic local fixture store, opens the built macOS app against that store, and writes screenshots to `Artifacts/UI`. `make ui-check` compares those captures with baselines in `References/UI`; use `Scripts/capture-ui-screenshots.sh bless` only when a visual change is intentional. Close any running Composer app before using these targets.
 
 Raw SwiftPM commands are acceptable when diagnosing Makefile behavior, but keep the Makefile as the documented entry point.
 
@@ -108,6 +112,7 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 - `ComposerRuntimeHelper` composes durable storage, `FileWorkflowProvider`, `LocalWorkspaceProvider`, and concrete agent runners behind the runtime XPC service.
 - Runtime XPC requests carry the app-selected storage backend/path so helper mode operates on the same store as the foreground app.
 - `ComposerApp` can use the helper by setting `COMPOSER_RUNTIME_MODE=helper` or the `ComposerRuntimeMode` app default; in helper mode runtime actions go through `RuntimeXPCClient` so active runs live outside the foreground app process.
+- `ComposerApp` UI tokens live in `ComposerTheme`; structural dimensions live in `ComposerLayout`; repeated UI shapes live in `ComposerPrimitives`. Follow `Docs/UI_QUALITY.md` for layout, state coverage, screenshot checks, and review checklist expectations.
 - `SymphonySync.SyncOutboxProcessor` works only through `SyncOutboxStore` and `SyncOutboxTransport`; concrete cloud/tracker transports should stay outside core app/runtime code.
 - `SymphonySync.SyncConflictPolicy` resolves provider-neutral local/base/remote snapshots; provider adapters should translate remote revisions into `SyncRecordVersion` without leaking provider types into the app.
 - `SyncCloudTransport` is the provider-neutral pull/push boundary for hosted sync and external tracker adapters.
@@ -123,4 +128,4 @@ env CLANG_MODULE_CACHE_PATH="$PWD/.build/clang-module-cache" \
 - SQLite runtime events are append-only and should not be cascaded away with task/project deletion.
 - SQLite sync metadata lives behind `SyncOutboxStore` and `SyncMetadataStore`; sync processors should use those protocols rather than SQLite-specific APIs.
 - Full-text task search lives behind `SearchStore`; keep callers on the protocol instead of SQLite FTS details.
-- Keep SwiftUI views focused on presentation; move provider/runtime behavior into packages as it grows.
+- Keep SwiftUI views focused on presentation; move provider/runtime behavior into packages as it grows. Root scene files should own composition while feature views own sidebar, workspace, board, inspector, diagnostics, and sheets.

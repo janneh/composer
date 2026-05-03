@@ -12,7 +12,7 @@ LAUNCH_AGENT_TEMPLATE := Resources/LaunchAgents/$(LAUNCH_AGENT_LABEL).plist
 LAUNCH_AGENT_PLIST := $(HOME)/Library/LaunchAgents/$(LAUNCH_AGENT_LABEL).plist
 LAUNCH_AGENT_LOG_DIR := $(HOME)/Library/Logs/Composer
 
-.PHONY: help build build-cli helper install-helper unload-helper xcode-build test app cli smoke-cli smoke-cli-sqlite open-project clean
+.PHONY: help build build-cli helper install-helper unload-helper xcode-build test app cli smoke-cli smoke-cli-sqlite ui-screenshots ui-check open-project clean
 
 help:
 	@echo "Targets:"
@@ -27,6 +27,8 @@ help:
 	@echo "  make cli              Install composerctl to $(INSTALL_BIN)"
 	@echo "  make smoke-cli        Run CLI smoke test against /tmp"
 	@echo "  make smoke-cli-sqlite Run CLI smoke test against SQLite in /tmp"
+	@echo "  make ui-screenshots   Capture deterministic Composer UI screenshots"
+	@echo "  make ui-check         Compare UI screenshots against references"
 	@echo "  make clean            Remove .build"
 
 build: xcode-build build-cli helper
@@ -96,6 +98,12 @@ smoke-cli-sqlite: build-cli
 	$$COMPOSERCTL --store-backend sqlite --store $$STORE_PATH task add --project Smoke --title "Smoke task" --state ready --priority high --label cli --agent claude; \
 	$$COMPOSERCTL --store-backend sqlite --store $$STORE_PATH task move --project Smoke --task LOCAL-1 --state human-review; \
 	$$COMPOSERCTL --store-backend sqlite --store $$STORE_PATH task list --project Smoke --state human-review
+
+ui-screenshots:
+	Scripts/capture-ui-screenshots.sh capture
+
+ui-check:
+	Scripts/capture-ui-screenshots.sh check
 
 clean:
 	rm -rf .build
