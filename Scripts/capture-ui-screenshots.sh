@@ -53,7 +53,7 @@ BIN_PATH="$(
 )"
 COMPOSERCTL="$BIN_PATH/composerctl"
 
-"$COMPOSERCTL" --store "$STORE_PATH" project add --name "UI Fixture" --agent codex --model "gpt-5.2"
+"$COMPOSERCTL" --store "$STORE_PATH" project add --name "UI Fixture" --repo "$ROOT_DIR" --agent codex --model "gpt-5.2"
 "$COMPOSERCTL" --store "$STORE_PATH" task add --project "UI Fixture" --identifier CMP-101 --title "Tighten empty board layout" --description "Keep lanes pinned below diagnostics and let tasks grow downward." --state backlog --priority normal --label design --label layout
 "$COMPOSERCTL" --store "$STORE_PATH" task add --project "UI Fixture" --identifier CMP-102 --title "Review ready dispatch copy" --description "Confirm action labels remain readable in the compact toolbar." --state ready --priority high --label copy
 "$COMPOSERCTL" --store "$STORE_PATH" task add --project "UI Fixture" --identifier CMP-103 --title "Run provider smoke check" --description "Keep runtime status rows stable while an agent run is active." --state running --priority urgent --label runtime
