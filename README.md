@@ -1,10 +1,8 @@
 # Composer
 
+Composer is a native macOS control surface for Symphony-style agent orchestration. Inspired by OpenAI's [Symphony orchestration spec](https://github.com/openai/symphony/blob/main/SPEC.md).
+
 ![Composer app board screenshot](Docs/Images/composer-app.png)
-
-Composer is a native macOS control surface for Symphony-style agent orchestration.
-
-It is inspired by OpenAI's [Symphony orchestration spec](https://github.com/openai/symphony/blob/main/SPEC.md).
 
 Licensed under the [Apache License 2.0](LICENSE).
 
